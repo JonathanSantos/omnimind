@@ -2,6 +2,8 @@
 # Monta dist/Omnimind.app sem Xcode: binários, ícone, Info.plist e assinatura ad-hoc.
 set -e
 cd "$(dirname "$0")/.."
+# A versão do pacote é a do workspace: um lugar só para mudar.
+VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
 cargo build --release -p app --bin omnimind-app
 cargo build --release -p omnimind-cli --bin omnimind
 APP="dist/Omnimind.app"
@@ -32,8 +34,8 @@ cat > "$APP/Contents/Info.plist" <<P
 <key>CFBundleExecutable</key><string>OmnimindApp</string>
 <key>CFBundleIconFile</key><string>AppIcon</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.1.0</string>
-<key>CFBundleVersion</key><string>1</string>
+<key>CFBundleShortVersionString</key><string>$VERSION</string>
+<key>CFBundleVersion</key><string>$VERSION</string>
 <key>LSMinimumSystemVersion</key><string>13.0</string>
 <key>NSHighResolutionCapable</key><true/>
 <key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>

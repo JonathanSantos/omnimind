@@ -96,7 +96,7 @@ checksum = "940b3a0ca603d1eade50a4846a2afffd5ef57a9feac2c0e2ec2e14f9ead76000"
 
 [[package]]
 name = "app"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "arboard",
  "bytemuck",
@@ -730,7 +730,7 @@ checksum = "d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76"
 
 [[package]]
 name = "ed"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "ropey",
  "unicode-segmentation",
@@ -1054,7 +1054,7 @@ dependencies = [
 
 [[package]]
 name = "gfx"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bytemuck",
  "cosmic-text",
@@ -1122,7 +1122,7 @@ dependencies = [
 
 [[package]]
 name = "graph"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bytemuck",
 ]
@@ -1928,7 +1928,7 @@ dependencies = [
 
 [[package]]
 name = "omnimind-cli"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "omnimind-core",
  "serde_json",
@@ -1936,7 +1936,7 @@ dependencies = [
 
 [[package]]
 name = "omnimind-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "rust-stemmers",
  "serde",
