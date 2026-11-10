@@ -27,6 +27,12 @@ const TRAVEL: f32 = 0.8;
 /// Duas leituras dentro desse intervalo fazem parte do mesmo percurso.
 const STREAK: f32 = 25.0;
 const MAX_ZOOM: f32 = 8.0;
+/// Brilho das linhas: quanto a fita alarga, em pontos, e a opacidade por faixa de volume.
+const GLOW_WIDTH: f32 = 6.0;
+const GLOW_ALPHA: [f32; 3] = [0.12, 0.07, 0.0];
+/// Halo de cada item: quantas vezes o tamanho do miolo, e a força.
+const HALO_GROW: f32 = 1.9;
+const HALO_ALPHA: f32 = 0.38;
 /// Quantas ligações do item em foco Raízes desenha.
 const FOCUS_ARCS: usize = 32;
 /// Acima disso, muita coisa chegou de uma vez: o desenho só atualiza.
@@ -465,6 +471,7 @@ impl GraphView {
             pipes.vertices.write(gpu, bytemuck::cast_slice(&s.vertices));
             pipes.indices.write(gpu, bytemuck::cast_slice(&s.indices));
             pipes.dots.write(gpu, bytemuck::cast_slice(&s.dots));
+            pipes.backdrop.write(gpu, bytemuck::cast_slice(&s.backdrop));
             self.uploaded = true;
             self.dirty = true;
         }
@@ -716,7 +723,14 @@ impl GraphView {
         let open_p = open.map_or(9.0, |at| (t - at) / s.open_seconds * (1.0 + s.span * 0.3));
         let dim = (1.0 - 0.68 * self.reading) * (1.0 - 0.72 * smooth(self.focus_amt));
         let hi_a = if s.tier == 2 { 0.85 } else { 1.0 };
-        let mut calls: Vec<(Call, DrawU)> = Vec::with_capacity(16);
+        let mut calls: Vec<(Call, DrawU)> = Vec::with_capacity(20);
+        // De trás para a frente: fundo, brilho das linhas, linhas, destaques, halos e miolos.
+        let dots_p = open.map_or(9.0, |at| (t - at) / s.open_seconds);
+        calls.push((Call::Backdrop(s.backdrop.len() as u32), DrawU { p: dots_p, dim: dim.max(0.45), soft: 1.0, ..Default::default() }));
+        // Em volume grande o brilho dobraria o custo de preencher a tela: lá as linhas vão sem ele.
+        if GLOW_ALPHA[s.tier] > 0.0 {
+            calls.push((Call::BaseGlow(base_i), DrawU { p: open_p, use_delay: 1.0, hi: 1.0, hi_a: GLOW_ALPHA[s.tier], add: GLOW_WIDTH * device, dim, soft: 1.0, ..Default::default() }));
+        }
         calls.push((Call::Base(base_i), DrawU { p: open_p, use_delay: 1.0, hi_a: 1.0, dim, head_gain: if open.is_some() { 1.6 } else { 0.0 }, ..Default::default() }));
         let push = |parts: &[graph::Part], clock: f32, focus: Option<f32>, calls: &mut Vec<(Call, DrawU)>| {
             for p in parts {
@@ -786,7 +800,8 @@ impl GraphView {
                 }
             }
         }
-        calls.push((Call::Dots(base_d), DrawU { p: open.map_or(9.0, |at| (t - at) / s.open_seconds), dim: dim.max(0.5), ..Default::default() }));
+        calls.push((Call::Halos(base_d), DrawU { p: dots_p, dim: dim.max(0.5), soft: 1.0, hi_a: HALO_ALPHA, add: HALO_GROW, ..Default::default() }));
+        calls.push((Call::Dots(base_d), DrawU { p: dots_p, dim: dim.max(0.5), ..Default::default() }));
         let mut glows: Vec<Dot> = Vec::with_capacity(64);
         for g in &self.fx.glows {
             let a = (t - g.start) / 1.1;
@@ -810,10 +825,11 @@ impl GraphView {
         let fit = Scene::fit(target.size.0 as f32, target.size.1 as f32);
         let per_point = target.size.0 as f32 / self.stage.0.max(1.0);
         let light = !is_dark();
-        let mut pal = [[0.0f32; 4]; SLOTS];
+        let mut pal = [[0.0f32; 4]; SLOTS + 1];
         for (i, c) in THEME.themes.iter().enumerate() {
             pal[i] = [c.r, c.g, c.b, 1.0];
         }
+        pal[SLOTS] = [THEME.ink.r, THEME.ink.g, THEME.ink.b, 1.0];
         let frame = FrameU {
             res: [target.size.0 as f32, target.size.1 as f32],
             scale: fit * self.zoom,

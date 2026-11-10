@@ -14,6 +14,8 @@ use mesh::{DotList, LineMesh};
 
 /// Fatias de cor. O tema oitavo em diante vira "Outros": cor nunca se repete.
 pub const SLOTS: usize = 7;
+/// Cor neutra, logo depois das fatias de tema: é a da poeira de fundo.
+pub const NEUTRAL: u8 = SLOTS as u8;
 const FRAME_W: f32 = 900.0;
 const FRAME_H: f32 = 600.0;
 
@@ -177,6 +179,8 @@ pub struct Scene {
     pub vertices: Vec<LineVertex>,
     pub indices: Vec<u32>,
     pub dots: Vec<Dot>,
+    /// O que fica atrás do desenho: poeira e a névoa de cada tema. Não é item, não se clica.
+    pub backdrop: Vec<Dot>,
     pub items: Vec<Item>,
     pub labels: Vec<Label>,
     pub base_indices: u32,
@@ -199,6 +203,24 @@ pub struct Arcs {
 }
 
 const ARC_STEPS: usize = 36;
+
+/// Poeira de fundo: pontos miúdos espalhados pelo quadro, sempre os mesmos.
+/// Dá ao desenho um espaço para existir, como o céu atrás do Universo.
+pub(crate) fn dust(seed: u64, count: usize) -> Vec<Dot> {
+    let mut r = rng(seed);
+    (0..count)
+        .map(|_| {
+            let pos = [(r() * 2.0 - 1.0) * FRAME_W * 0.56, (r() * 2.0 - 1.0) * FRAME_H * 0.56];
+            let faint = r();
+            Dot { pos, size: 0.5 + faint * faint * 1.1, delay: 0.0, alpha: 0.18 + r() * 0.42, theme: NEUTRAL as f32, kind: 0.0 }
+        })
+        .collect()
+}
+
+/// Névoa de um tema: uma mancha larga e suave na cor dele.
+pub(crate) fn haze(pos: [f32; 2], size: f32, theme: u8, delay: f32) -> Dot {
+    Dot { pos, size, delay, alpha: 0.11, theme: theme as f32, kind: 0.0 }
+}
 
 /// Faixa de volume: decide espessuras, amostragem e passo do crescimento.
 pub fn tier_of(n: usize) -> usize {
@@ -229,7 +251,7 @@ pub fn build(form: Form, input: &Input) -> Scene {
 
 impl Scene {
     fn empty(form: Form) -> Self {
-        Scene { form, vertices: vec![], indices: vec![], dots: vec![], items: vec![], labels: vec![], base_indices: 0, base_dots: 0, created: vec![], span: 1.0, head: 0.1, open_seconds: 3.4, tier: 0 }
+        Scene { form, vertices: vec![], indices: vec![], dots: vec![], backdrop: vec![], items: vec![], labels: vec![], base_indices: 0, base_dots: 0, created: vec![], span: 1.0, head: 0.1, open_seconds: 3.4, tier: 0 }
     }
 
     /// Escala para caber no quadro de desenho, em unidades da tela por unidade do grafo.
@@ -461,6 +483,47 @@ mod tests {
             assert_eq!(arcs.vertices[0].along, 0.0);
             assert_eq!(arcs.vertices.last().unwrap().along, 1.0);
         }
+    }
+
+    #[test]
+    fn bundles_draw_a_skeleton_and_keep_every_link_for_the_focus() {
+        // Trinta itens com a mesma tag: 435 ligações que dizem a mesma coisa.
+        let mut nodes: Vec<Node> = (0..30).map(|i| Node { theme: 0, sub: 0, uses: 0.3, fresh: false, key: i + 1, note: false, hub: false }).collect();
+        let mut links = vec![];
+        for a in 0..30u32 {
+            for b in a + 1..30 {
+                links.push((a, b));
+            }
+        }
+        assign_subs(&mut nodes, &links);
+        let input = Input { nodes, weights: vec![], sub_names: vec![], base_links: links.len(), links, fresh: vec![], themes: vec!["A".into()] };
+        let s = build(Form::Bundles, &input);
+        // Cada ligação aparece duas vezes nos itens, uma em cada ponta: o foco continua vendo todas.
+        let known: usize = s.items.iter().map(|i| i.edges.len()).sum();
+        assert_eq!(known, 435 * 2);
+        assert!(s.items.iter().all(|i| i.neighbors.len() == 29));
+        // A base desenha bem menos que isso, e cada item mantém ao menos uma ligação nela.
+        let base = s.base_indices;
+        let in_base = |i: &Item| i.edges.iter().filter(|e| e.end <= base).count();
+        let drawn: usize = s.items.iter().map(in_base).sum::<usize>() / 2;
+        assert!(drawn <= 90, "{drawn} ligações na base");
+        assert!(s.items.iter().all(|i| in_base(i) >= 1));
+        assert!((base as usize) < s.indices.len(), "o resto da geometria fica depois da base");
+    }
+
+    #[test]
+    fn both_forms_have_a_backdrop_that_is_not_an_item() {
+        for form in [Form::Bundles, Form::Roots] {
+            let s = build(form, &sample(60, 0));
+            assert_eq!(s.items.len(), 60, "{form:?}: o fundo não vira item");
+            let dust = s.backdrop.iter().filter(|d| d.theme as u8 == NEUTRAL && d.size < 3.0).count();
+            let haze = s.backdrop.iter().filter(|d| (d.theme as u8) < NEUTRAL).count();
+            assert!(dust > 100, "{form:?}: {dust} grãos de poeira");
+            assert!(haze >= 5, "{form:?}: uma névoa por tema, {haze}");
+            assert!(s.backdrop.iter().all(|d| d.pos[0].is_finite() && d.pos[1].is_finite()));
+            assert_eq!(s.backdrop.len(), build(form, &sample(60, 0)).backdrop.len(), "determinístico");
+        }
+        assert!(build(Form::Bundles, &Input::default()).backdrop.is_empty());
     }
 
     #[test]

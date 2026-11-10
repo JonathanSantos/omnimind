@@ -2,7 +2,7 @@
 //! Onde há mais uso o galho engrossa.
 
 use crate::mesh::Stroke;
-use crate::{rng, tier_of, Created, DotList, Form, Input, Item, Label, LineMesh, Scene, Span, SLOTS};
+use crate::{dust, haze, rng, tier_of, Created, DotList, Form, Input, Item, Label, LineMesh, Scene, Span, SLOTS};
 use std::f32::consts::{FRAC_PI_2, TAU};
 
 const RX: f32 = 374.0;
@@ -261,6 +261,22 @@ pub fn build(input: &Input) -> Scene {
             s = t.parent[s as usize];
         }
     }
+    // Quais trechos levam a algum item: sobe de cada ponta com item até o centro.
+    let mut bears = vec![false; n];
+    for a in atts.iter().filter(|a| a.item >= 0) {
+        let mut s = a.end;
+        while s >= 0 && !bears[s as usize] {
+            bears[s as usize] = true;
+            s = t.parent[s as usize];
+        }
+    }
+    for (_, end, _) in &picked {
+        let mut s = *end;
+        while s >= 0 && !bears[s as usize] {
+            bears[s as usize] = true;
+            s = t.parent[s as usize];
+        }
+    }
     let mut dist = vec![0f32; n];
     let mut far = 1f32;
     for s in 0..n {
@@ -270,7 +286,8 @@ pub fn build(input: &Input) -> Scene {
         }
         far = far.max(dist[s]);
     }
-    let (w0, wk) = ([0.75, 0.55, 0.42][tier], [0.62, 0.24, 0.1][tier]);
+    // Galho fino, com o brilho dando o corpo: tronco grosso demais escondia o que cresce dele.
+    let (w0, wk) = ([0.7, 0.52, 0.4][tier], [0.4, 0.17, 0.08][tier]);
     let width = |s: usize| w0 + wk * weight[s].powf(0.45);
     let main = |s: usize| kids[s].iter().copied().max_by(|a, b| weight[*a as usize].total_cmp(&weight[*b as usize]));
     let alpha = [0.95, 0.9, 0.82][tier];
@@ -302,6 +319,8 @@ pub fn build(input: &Input) -> Scene {
         let delay = g * 0.012;
         let begin = mesh.indices.len() as u32;
         let wa = if is_main { width(p) } else { width(s) * 1.15 };
+        // Ramo que não leva a item nenhum é só textura: fica atrás, mais apagado.
+        let alpha = if bears[s] { alpha } else { alpha * 0.42 };
         let a = mesh.pair([t.x[p], t.y[p]], [-start[1], start[0]], dist[p] / far, &Stroke { width: wa, alpha, delay, themes: [g, g] });
         let b = mesh.pair([t.x[s], t.y[s]], [-end[1], end[0]], dist[s] / far, &Stroke { width: width(s), alpha, delay, themes: [g, g] });
         mesh.quad(a, b);
@@ -387,6 +406,20 @@ pub fn build(input: &Input) -> Scene {
         if let Some(name) = input.themes.get(g as usize) {
             scene.labels.push(Label { text: name.clone(), x: c * (RX + 22.0), y: CY + a.sin() * (RY + 24.0), anchor: if c > 0.3 { 0.0 } else if c < -0.3 { 1.0 } else { 0.5 }, minor: false });
         }
+    }
+    // Fundo: poeira e a névoa de cada tema, no meio dos seus itens.
+    scene.backdrop = dust(0x2007_5EED, 230);
+    // O centro, de onde tudo cresce, ganha uma luz própria.
+    scene.backdrop.push(crate::Dot { pos: [0.0, CY], size: 20.0, delay: 0.0, alpha: 0.34, theme: crate::NEUTRAL as f32, kind: 0.0 });
+    for &g in &live {
+        let mine: Vec<&Item> = items.iter().filter(|i| i.theme == g && (i.x != 0.0 || i.y != 0.0)).collect();
+        if mine.is_empty() {
+            continue;
+        }
+        let k = mine.len() as f32;
+        let (cx, cy) = (mine.iter().map(|i| i.x).sum::<f32>() / k, mine.iter().map(|i| i.y).sum::<f32>() / k);
+        let spread = (mine.iter().map(|i| (i.x - cx).powi(2) + (i.y - cy).powi(2)).sum::<f32>() / k).sqrt();
+        scene.backdrop.push(haze([cx, cy], (spread * 1.5).clamp(60.0, 190.0), g, g as f32 * 0.012));
     }
     scene.vertices = mesh.vertices;
     scene.indices = mesh.indices;

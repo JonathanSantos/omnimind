@@ -93,6 +93,10 @@ Cada tipo de memória tem um símbolo fino, desenhado por `Ui::glyph`.
 | Cruz | Episódio |
 | Quadrado | Preferência |
 
+## Grafo
+
+As três vistas falam a mesma língua: fundo com poeira e uma névoa suave por tema, item com miolo nítido e halo, linha fina com brilho que para na cor do tema. A base mostra o esqueleto das ligações; o foco e a leitura mostram todas. Nota é anel ou planeta, memória é disco ou estrela.
+
 ## Forma
 
 Cantos levemente arredondados: 8 px em botões e campos, 14 px em folhas sobre a tela. Linhas finas separam as áreas. Sombra só no que flutua: painel de detalhe, paleta e ficha do grafo.

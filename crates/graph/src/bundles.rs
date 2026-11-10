@@ -1,7 +1,7 @@
 //! Feixes: itens em círculo, ligações agrupadas por subtema e tema (Holten, 2006).
 
 use crate::mesh::Stroke;
-use crate::{rng, tier_of, DotList, Form, Input, Item, Label, LineMesh, Scene, Created, Span, SLOTS};
+use crate::{dust, haze, rng, tier_of, DotList, Form, Input, Item, Label, LineMesh, Scene, Created, Span, SLOTS};
 use std::collections::HashMap;
 use std::f32::consts::{FRAC_PI_2, TAU};
 
@@ -36,6 +36,27 @@ fn bspline(cp: &[[f32; 2]], n: usize, out: &mut Vec<[f32; 2]>) {
     }
 }
 
+/// Quais ligações antigas entram na base: até `keep` por item, as mais fortes primeiro.
+fn skeleton(input: &Input, angle: &[f32], keep: usize) -> Vec<bool> {
+    let n = input.nodes.len();
+    let weight = |k: usize| input.weights.get(k).copied().unwrap_or(1.0);
+    let mut around: Vec<Vec<(f32, f32, usize)>> = vec![Vec::new(); n];
+    for (k, &(a, b)) in input.links[..input.base_links].iter().enumerate() {
+        let apart = (angle[a as usize] - angle[b as usize]).abs();
+        let apart = apart.min(TAU - apart);
+        around[a as usize].push((weight(k), apart, k));
+        around[b as usize].push((weight(k), apart, k));
+    }
+    let mut chosen = vec![false; input.base_links];
+    for list in &mut around {
+        list.sort_by(|x, y| y.0.total_cmp(&x.0).then(x.1.total_cmp(&y.1)).then(x.2.cmp(&y.2)));
+        for &(_, _, k) in list.iter().take(keep) {
+            chosen[k] = true;
+        }
+    }
+    chosen
+}
+
 fn polar(a: f32, r: f32) -> [f32; 2] {
     [a.cos() * r, a.sin() * r]
 }
@@ -51,6 +72,7 @@ pub fn build(input: &Input) -> Scene {
     let tier = tier_of(n);
     scene.tier = tier;
     scene.open_seconds = if tier == 2 { 4.2 } else { 3.4 };
+    scene.backdrop = dust(0xB0D1E5, 230);
     let (mut mesh, mut dots) = (LineMesh::default(), DotList::default());
     let mut order: Vec<u32> = (0..n as u32).collect();
     order.sort_by_key(|&i| {
@@ -89,7 +111,14 @@ pub fn build(input: &Input) -> Scene {
     for (g, s) in theme_span.iter().enumerate() {
         let Some(s) = *s else { continue };
         let pts: Vec<[f32; 2]> = (0..=48).map(|k| polar(s.0 + (s.1 - s.0) * k as f32 / 48.0, RADIUS + 9.0)).collect();
-        mesh.ribbon(&pts, &Stroke { width: 2.2, alpha: 0.95, delay: g as f32 * 0.028, themes: [g as f32; 2] });
+        mesh.ribbon(&pts, &Stroke { width: 1.5, alpha: 0.9, delay: g as f32 * 0.028, themes: [g as f32; 2] });
+        // Névoa do tema: manchas suaves por dentro do arco, uma a cada trecho.
+        let blobs = ((s.1 - s.0) / 0.42).ceil().max(1.0) as usize;
+        for k in 0..blobs {
+            let a = s.0 + (s.1 - s.0) * (k as f32 + 0.5) / blobs as f32;
+            let reach = ((s.1 - s.0) * RADIUS / blobs as f32).clamp(46.0, 120.0);
+            scene.backdrop.push(haze(polar(a, RADIUS * 0.9), reach, g as u8, g as f32 * 0.028));
+        }
         let a = mid(s);
         let c = a.cos();
         // Tema com projetos nomeados: o nome do grupo vai mais para fora e deixa a faixa de perto para eles.
@@ -130,7 +159,9 @@ pub fn build(input: &Input) -> Scene {
     // Com zoom a curva aparece de perto: poucos pontos virariam quinas.
     let samples = [44, 26, 12][tier];
     let width = [0.95, 0.7, 0.5][tier];
-    let base_alpha = (6.5 / (input.links.len().max(1) as f32).sqrt()).min(0.72);
+    // A opacidade segue o que a base de fato desenha, não o total de ligações.
+    let drawn = skeleton(input, &angle, [3, 3, 2][tier]).iter().filter(|k| **k).count();
+    let base_alpha = (7.5 / (drawn.max(1) as f32).sqrt()).clamp(0.2, 0.78);
     let mut r = rng(77);
     let mut pts = Vec::with_capacity(samples);
     let anchor = |i: usize| {
@@ -160,8 +191,14 @@ pub fn build(input: &Input) -> Scene {
             items[ib].neighbors.push(a);
         }
     };
-    for &(a, b) in &input.links[..input.base_links] {
-        edge(&mut mesh, &mut items, a, b, 0.2 + r() * 0.54, false);
+    // A base desenha o esqueleto: cada item com as suas ligações mais fortes e, no empate, as de quem
+    // está mais perto no círculo. Trinta itens com a mesma tag são 435 ligações que dizem uma coisa só:
+    // todas juntas viram uma massa, e o que importa some. As outras continuam existindo e acendem no foco.
+    let keep = skeleton(input, &angle, [3, 3, 2][tier]);
+    for (k, &(a, b)) in input.links[..input.base_links].iter().enumerate() {
+        if keep[k] {
+            edge(&mut mesh, &mut items, a, b, 0.2 + r() * 0.54, false);
+        }
     }
     scene.base_indices = mesh.indices.len() as u32;
     scene.base_dots = dots.dots.len() as u32;
@@ -176,6 +213,12 @@ pub fn build(input: &Input) -> Scene {
             }
         }
         scene.created.push(Created { item: id, index_end: mesh.indices.len() as u32, dot_end: dots.dots.len() as u32 });
+    }
+    // Fora da base, depois de tudo: geometria que só o foco e a leitura desenham.
+    for (k, &(a, b)) in input.links[..input.base_links].iter().enumerate() {
+        if !keep[k] {
+            edge(&mut mesh, &mut items, a, b, 0.0, false);
+        }
     }
     scene.vertices = mesh.vertices;
     scene.indices = mesh.indices;

@@ -20,7 +20,7 @@ pub struct FrameU {
     pub offset: [f32; 2],
     pub wscale: f32,
     pub pad: [f32; 3],
-    pub pal: [[f32; 4]; 7],
+    pub pal: [[f32; 4]; 8],
 }
 
 #[repr(C)]
@@ -86,6 +86,8 @@ pub struct Pipes {
     /// Arcos soltos: a luz entre leituras e as ligações do foco em Raízes.
     pub arc_vertices: Grow,
     pub arc_indices: Grow,
+    /// Poeira e névoa: o fundo do desenho.
+    pub backdrop: Grow,
 }
 
 /// Uma chamada de desenho, já com seu uniforme na lista.
@@ -94,6 +96,12 @@ pub enum Call {
     Fx { offset: u32, count: u32 },
     Focus { offset: u32, count: u32 },
     Arc { offset: u32, count: u32 },
+    /// A base de novo, larga e suave, por baixo das linhas: o brilho delas.
+    BaseGlow(u32),
+    /// Poeira e névoa, antes de tudo.
+    Backdrop(u32),
+    /// Os mesmos pontos da base, maiores e suaves: o halo de cada item.
+    Halos(u32),
     Dots(u32),
     Glows(u32),
 }
@@ -169,6 +177,7 @@ impl Pipes {
             glows: Grow::new(d, 1 << 12, v),
             arc_vertices: Grow::new(d, 1 << 14, v),
             arc_indices: Grow::new(d, 1 << 13, i),
+            backdrop: Grow::new(d, 1 << 13, v),
         }
     }
 
@@ -212,7 +221,7 @@ impl Pipes {
         for (i, (call, _)) in calls.iter().enumerate() {
             p.set_bind_group(0, &self.bind, &[i as u32 * DRAW_STRIDE as u32]);
             match call {
-                Call::Base(count) => {
+                Call::Base(count) | Call::BaseGlow(count) => {
                     p.set_pipeline(&self.line_over);
                     p.set_vertex_buffer(0, self.vertices.buf.slice(..));
                     p.set_index_buffer(self.indices.buf.slice(..), IndexFormat::Uint32);
@@ -230,6 +239,16 @@ impl Pipes {
                     p.set_vertex_buffer(0, self.arc_vertices.buf.slice(..));
                     p.set_index_buffer(self.arc_indices.buf.slice(..), IndexFormat::Uint32);
                     p.draw_indexed(*offset..*offset + *count, 0, 0..1);
+                }
+                Call::Backdrop(n) => {
+                    p.set_pipeline(dot);
+                    p.set_vertex_buffer(0, self.backdrop.buf.slice(..));
+                    p.draw(0..6, 0..*n);
+                }
+                Call::Halos(n) => {
+                    p.set_pipeline(dot);
+                    p.set_vertex_buffer(0, self.dots.buf.slice(..));
+                    p.draw(0..6, 0..*n);
                 }
                 Call::Dots(n) => {
                     p.set_pipeline(&self.dot_over);

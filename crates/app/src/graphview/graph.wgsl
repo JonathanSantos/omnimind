@@ -9,7 +9,8 @@ struct Frame {
   offset: vec2f,
   // Escala de espessuras e pontos. Cresce menos que `scale` no zoom, para a linha não virar faixa.
   wscale: f32,
-  pal: array<vec4f, 7>,
+  // Sete fatias de tema e, por último, a cor neutra da poeira.
+  pal: array<vec4f, 8>,
 }
 
 struct Draw {
@@ -77,7 +78,11 @@ fn line_ink(i: LineOut) -> vec4f {
     return vec4f(-1.0);
   }
   let head = smoothstep(-f.head, 0.0, gap) * d.head_gain;
-  let e = clamp(i.half_w - abs(i.edge) + 0.5, 0.0, 1.0);
+  var e = clamp(i.half_w - abs(i.edge) + 0.5, 0.0, 1.0);
+  // Brilho: a mesma fita, larga e sem borda, mais forte no meio.
+  if d.soft > 0.5 {
+    e = pow(clamp(1.0 - abs(i.edge) / max(i.half_w, 1.0), 0.0, 1.0), 1.7);
+  }
   let al = clamp(i.alpha * e * d.dim * (1.0 + head), 0.0, 1.0);
   return vec4f(mix(i.c0, i.c1, i.along), al);
 }
@@ -129,7 +134,8 @@ fn dot_vs(v: DotIn) -> DotOut {
   r = r * r * (3.0 - 2.0 * r);
   // O anel precisa de um pouco mais de corpo que o disco para ler no mesmo tamanho.
   let grow = select(1.0, 1.22, v.kind > 0.5);
-  let s = max(v.size * 2.0 * grow * f.wscale * (0.4 + 0.6 * r), 1.5) + 1.5;
+  // `add` aumenta o ponto inteiro: é o que faz do mesmo item um halo em volta do miolo.
+  let s = max(v.size * 2.0 * grow * (1.0 + d.add) * f.wscale * (0.4 + 0.6 * r), 1.5) + 1.5;
   var o: DotOut;
   o.kind = v.kind;
   o.pos = to_clip(v.pos * f.scale + f.offset + uv * s * 0.5);
@@ -146,14 +152,15 @@ fn dot_cover(i: DotOut) -> f32 {
   var a = clamp((1.0 - r) * h, 0.0, 1.0);
   // Nota: anel com um miolo pequeno. Muito pequeno não dá para ler o furo, e fica disco.
   if i.kind > 0.5 && d.soft < 0.5 && i.s > 9.0 {
-    let ring = a * clamp((r - 0.66) * h + 0.5, 0.0, 1.0);
-    let core = clamp((0.36 - r) * h + 0.5, 0.0, 1.0);
+    // Anel fino e miolo pequeno, como o planeta do Universo: a nota se distingue sem pesar mais que a memória.
+    let ring = a * clamp((r - 0.76) * h + 0.5, 0.0, 1.0);
+    let core = clamp((0.32 - r) * h + 0.5, 0.0, 1.0);
     a = max(ring, core);
   }
   if d.soft > 0.5 {
     a = pow(max(1.0 - r, 0.0), 2.2);
   }
-  return a * i.a;
+  return a * i.a * select(1.0, d.hi_a, d.soft > 0.5 && d.hi_a > 0.0);
 }
 
 @fragment
