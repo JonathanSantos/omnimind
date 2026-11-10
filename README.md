@@ -10,6 +10,10 @@
 </p>
 
 <p align="center">
+  <a href="https://jonathansantos.github.io/omnimind/"><b>Site do projeto: jonathansantos.github.io/omnimind</b></a>
+</p>
+
+<p align="center">
   <a href="#o-que-ele-faz">O que faz</a> ·
   <a href="#as-telas">Telas</a> ·
   <a href="#os-fluxos">Fluxos</a> ·
@@ -321,6 +325,7 @@ Versão inicial, feita para uso pessoal em Mac com Apple Silicon.
 
 | Documento | Conteúdo |
 |---|---|
+| [Site do projeto](https://jonathansantos.github.io/omnimind/) | Visão geral, diagramas animados e as três vistas do grafo |
 | [Guia de uso](docs/guide/guide.pdf) | Instalar, conectar, usar, ligar e desligar, com imagens |
 | [Arquitetura](docs/specs/mvp/architecture.md) | Threads, grafo e multi-processo |
 | [Núcleo](docs/specs/mvp/core.md) | Cofre, diário, escrita e busca |
