@@ -219,6 +219,64 @@ impl Index {
         self.live += 1;
     }
 
+    /// Pares de documentos que falam do mesmo assunto: cosseno sobre os termos raros que dividem.
+    /// Cada documento fica com os `per_doc` mais parecidos acima de `floor`. Chaves em ordem, sem repetir par.
+    /// Cofre grande demais fica de fora: o custo cresce com o quadrado da frequência dos termos.
+    pub fn similar(&self, per_doc: usize, floor: f32) -> Vec<(String, String, f32)> {
+        let n = self.live;
+        if !(3..=3000).contains(&n) {
+            return Vec::new();
+        }
+        // Termo em quase todo documento não distingue assunto; termo de um só não liga ninguém.
+        let max_df = ((n as f32).sqrt() * 1.5).ceil().max(3.0) as u32;
+        let weight = |t: u32| {
+            let d = self.df[t as usize];
+            if (2..=max_df).contains(&d) { idf(d, n) } else { 0.0 }
+        };
+        let mut by_term: FastMap<u32, Vec<u32>> = FastMap::default();
+        let mut norm = vec![0f32; self.docs.len()];
+        for (i, d) in self.docs.iter().enumerate() {
+            let Some(d) = d else { continue };
+            for &t in &d.term_ids {
+                let w = weight(t);
+                if w > 0.0 {
+                    norm[i] += w * w;
+                    by_term.entry(t).or_default().push(i as u32);
+                }
+            }
+            norm[i] = norm[i].sqrt();
+        }
+        let key = |i: u32| self.docs[i as usize].as_ref().map_or("", |d| d.key.as_str());
+        let mut pairs: Vec<(String, String, f32)> = Vec::new();
+        for (a, d) in self.docs.iter().enumerate() {
+            let Some(d) = d else { continue };
+            if norm[a] == 0.0 {
+                continue;
+            }
+            let mut shared: FastMap<u32, f32> = FastMap::default();
+            for &t in &d.term_ids {
+                let w = weight(t);
+                if w == 0.0 {
+                    continue;
+                }
+                for &b in &by_term[&t] {
+                    if b as usize != a {
+                        *shared.entry(b).or_insert(0.0) += w * w;
+                    }
+                }
+            }
+            let mut best: Vec<(f32, u32)> = shared.into_iter().map(|(b, s)| (s / (norm[a] * norm[b as usize]), b)).filter(|x| x.0 >= floor).collect();
+            best.sort_by(|x, y| y.0.total_cmp(&x.0).then(key(x.1).cmp(key(y.1))));
+            for (score, b) in best.into_iter().take(per_doc) {
+                let (x, y) = (key(a as u32), key(b));
+                pairs.push(if x < y { (x.to_string(), y.to_string(), score) } else { (y.to_string(), x.to_string(), score) });
+            }
+        }
+        pairs.sort_by(|x, y| (&x.0, &x.1).cmp(&(&y.0, &y.1)));
+        pairs.dedup_by(|b, a| a.0 == b.0 && a.1 == b.1);
+        pairs
+    }
+
     fn avg(&self) -> [f32; FIELD_COUNT] {
         let n = self.live.max(1) as f32;
         let mut a = [1.0f32; FIELD_COUNT];

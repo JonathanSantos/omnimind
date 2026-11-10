@@ -15,6 +15,7 @@ pub mod lifecycle;
 pub mod model;
 pub mod note;
 pub mod paths;
+pub mod projects;
 pub mod search;
 pub mod signals;
 pub mod simhash;
@@ -30,6 +31,7 @@ pub use import::ImportReport;
 pub use journal::{Cursor, Event, EventKind, JournalBatch, SessionInfo};
 pub use lifecycle::*;
 pub use model::*;
+pub use projects::{Place, Project, Projects};
 pub use search::{
     Audience, Coverage, Hit, ReadRequest, ReadResponse, SearchQuery, SearchResponse, SearchStatus,
 };

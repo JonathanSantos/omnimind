@@ -25,7 +25,8 @@ const RACY_PER_SCAN: usize = 128;
 const SNAPSHOT_INTERVAL: Duration = Duration::from_secs(30);
 const LOCK_TIMEOUT: Duration = Duration::from_secs(20);
 const SNAPSHOT_MAGIC: &[u8; 8] = b"VZSNAP1\n";
-const SNAPSHOT_FORMAT: u32 = 2;
+// 3: cada nota guarda a declaração de projeto que faz.
+const SNAPSHOT_FORMAT: u32 = 3;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct FileSig {
@@ -90,6 +91,9 @@ pub(crate) struct NoteRec {
     pub hash: String,
     pub sig: FileSig,
     pub read_at_ns: i64,
+    /// Grupo, pastas e apelidos, quando a nota descreve um projeto.
+    #[serde(default)]
+    pub project: Option<crate::projects::Decl>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -178,6 +182,11 @@ pub(crate) struct State {
 }
 
 impl State {
+    /// Projetos que as notas declaram. Barato: só percorre o que já está em memória.
+    pub fn projects(&self) -> crate::projects::Projects {
+        crate::projects::Projects::build(self.notes.values().filter_map(|n| n.project.as_ref().map(|d| (n.path.as_str(), n.title.as_str(), d))))
+    }
+
     fn new() -> Self {
         State {
             loaded: false,
@@ -1144,6 +1153,7 @@ impl Brain {
                 hash: hash.clone(),
                 sig,
                 read_at_ns: read_at,
+                project: crate::projects::declare(text),
             },
         );
         st.resolver_add(rel);
@@ -1385,10 +1395,12 @@ impl Brain {
             let _ = fs::remove_file(&tmp);
             return Err(e.into());
         }
+        store_projects(&self.inner.root, &st.projects());
         st.dirty = false;
         st.snapshot_saved = Some(Instant::now());
         Ok(())
     }
+
 
     /// Grava o instantâneo se houver mudança e já passou o intervalo, contando outros processos.
     pub fn maybe_snapshot(&self) -> Result<()> {
@@ -1897,6 +1909,31 @@ fn link_text(old_target: &str, to: &str, after: &Resolver) -> String {
         return full.to_string();
     }
     to.to_string()
+}
+
+/// Cópia descartável da lista de projetos, para quem não abre o cofre inteiro.
+pub(crate) const PROJECTS_FILE: &str = "projects.json";
+
+/// Grava a cópia da lista de projetos, só quando ela mudou. Falhar aqui não é erro: é um cache.
+pub(crate) fn store_projects(root: &Path, list: &crate::projects::Projects) {
+    let Ok(json) = serde_json::to_vec(list) else { return };
+    let dir = root.join(".omnimind");
+    let path = dir.join(PROJECTS_FILE);
+    if fs::read(&path).is_ok_and(|old| old == json) {
+        return;
+    }
+    let tmp = dir.join("tmp").join(format!("projects-{}", util::new_ulid()));
+    if fs::create_dir_all(dir.join("tmp")).is_ok() && fs::write(&tmp, json).is_ok() && fs::rename(&tmp, &path).is_err() {
+        let _ = fs::remove_file(&tmp);
+    }
+}
+
+/// Projetos como o último processo que abriu o cofre os viu. Sem o arquivo, nenhum tem nota.
+pub fn cached_projects(root: &Path) -> crate::projects::Projects {
+    fs::read(root.join(".omnimind").join(PROJECTS_FILE))
+        .ok()
+        .and_then(|b| serde_json::from_slice(&b).ok())
+        .unwrap_or_default()
 }
 
 pub fn project_from_cwd(cwd: &str) -> String {

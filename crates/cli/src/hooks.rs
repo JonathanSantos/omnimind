@@ -173,15 +173,27 @@ fn on_post_tool(ctx: &Ctx, input: &Value) {
     let Some(name) = field(input, "tool_name", "toolName") else {
         return;
     };
+    let args = input.get("tool_input").or_else(|| input.get("toolArgs"));
+    let path = args.and_then(|a| a.get("file_path").or_else(|| a.get("path"))).and_then(Value::as_str);
+    // Só entra no diário a ferramenta que mexeu num arquivo do cofre: é o que interessa auditar.
+    // Cada `Bash` e cada `Read` do projeto da pessoa enchiam o diário sem servir a ninguém.
+    let Some(path) = path.filter(|p| touches_vault(&ctx.root, p)) else {
+        return;
+    };
     let mut e = ctx.event(EventKind::Tool);
     // Só o nome e o caminho. Saída de ferramenta nunca entra no diário.
     e.kind = Some(name.chars().take(64).collect());
-    let args = input.get("tool_input").or_else(|| input.get("toolArgs"));
-    e.path = args
-        .and_then(|a| a.get("file_path").or_else(|| a.get("path")))
-        .and_then(Value::as_str)
-        .map(|p| inspect::redact(p).chars().take(300).collect());
+    e.path = Some(inspect::redact(path).chars().take(300).collect());
     ctx.append(e);
+}
+
+/// O caminho aponta para dentro da pasta do cofre?
+fn touches_vault(root: &Path, path: &str) -> bool {
+    let root = root.canonicalize().unwrap_or_else(|_| root.to_path_buf());
+    let p = Path::new(path);
+    // O arquivo pode nem existir mais: compara pelo que der para resolver, e pelo caminho como veio.
+    let resolved = p.canonicalize().or_else(|_| p.parent().map_or(Err(()), |d| d.canonicalize().map_err(|_| ()))).ok();
+    p.is_absolute() && (p.starts_with(&root) || resolved.is_some_and(|r| r.starts_with(&root)))
 }
 
 fn session_mark(ctx: &Ctx, input: &Value, kind: &str) {

@@ -41,6 +41,7 @@ Repita em laço, sem pedir confirmação a cada volta:
    - `stale`: leia a nota e escreva a versão atual com `supersedes`.
    - `contradiction`, `near_duplicate`: decida qual vale e substitua com `supersedes`. Sem certeza, deixe e diga à pessoa.
    - `gap`: tente responder com o que há; se não houver, relate.
+   - `title`: o título é só uma resposta, como "Sim, usar X". Reescreva com `memory_write` e o `id`, dizendo do que se trata. Se a memória for da pessoa, sugira o título e deixe a troca com ela.
 4. Volte ao passo 1.
 
 Ao terminar, relate `notes_covered` de `notes_total`, o que foi escrito e o que ficou em aberto. Encolher conta como melhora. A cobertura é contada pelo produto; só a leitura inteira da nota conta.
@@ -653,7 +654,18 @@ pub fn status(brain: &Path, c: &Connection) -> LinkState {
     } else {
         (project.join(".mcp.json"), "mcpServers")
     };
-    let Ok(m) = read_json(&path) else {
+    linked_to(brain, &path, key)
+}
+
+/// Ligação global: a que vale em todos os projetos da pessoa, gravada na pasta pessoal.
+pub fn global_status(brain: &Path, home: &Path, client: &str) -> LinkState {
+    let path = if client == "copilot" { home.join(".copilot").join("mcp-config.json") } else { home.join(".claude.json") };
+    linked_to(brain, &path, "mcpServers")
+}
+
+/// O arquivo de configuração aponta o servidor `omnimind` para este cofre?
+fn linked_to(brain: &Path, path: &Path, key: &str) -> LinkState {
+    let Ok(m) = read_json(path) else {
         return LinkState::Off;
     };
     let Some(args) = m

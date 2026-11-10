@@ -391,7 +391,8 @@ fn citations_archive_and_paths_work_as_the_model_sees_them() {
 fn search_and_read_say_which_project_a_memory_is_from() {
     let d = TempDir::new("project");
     let brain = init_brain(&d);
-    let mut m = Mcp::spawn(d.path(), &brain, &["--cwd", "/tmp/ficticio/peneira"]);
+    // Fora de pasta temporária: lá o nome da pasta nunca vira projeto de um procedimento.
+    let mut m = Mcp::spawn(d.path(), &brain, &["--cwd", "/home/dev/peneira"]);
     init(&mut m);
     let w = m.call("memory_write", json!({"key": "k", "type": "procedure", "title": "Compilação cruzada", "summary": "Resolvida com zig cc como CC no CI."}));
     let s = m.call("memory_search", json!({"query": "compilação cruzada zig"}));

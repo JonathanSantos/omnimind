@@ -197,44 +197,103 @@ fn title_cased(s: &str) -> String {
     c.next().map_or(String::new(), |f| f.to_uppercase().collect::<String>() + c.as_str())
 }
 
-/// Regiões do mapa: projeto da memória, pasta da nota, e o resto segue os vizinhos.
-fn regions(g: &core::GraphData, metas: &FxHashMap<String, &core::MemoryMeta>) -> (Vec<u32>, Vec<String>) {
+/// Id de um item como as telas o conhecem. O diário grava nota como `note:<caminho>`; na interface é só o caminho.
+/// Sem isto, a leitura de uma nota pela IA não acendia no grafo nem contava nas métricas.
+pub fn node_id(target: &str) -> &str {
+    target.strip_prefix("note:").unwrap_or(target)
+}
+
+/// Nome do grupo de quem ainda não tem nota de projeto.
+pub const UNREGISTERED_GROUP: &str = "Sem nota de projeto";
+const GENERAL_GROUP: &str = "Geral";
+
+/// Como o grafo agrupa cada nó: o grupo dá a cor, o projeto junta os itens dentro do grupo.
+struct Grouping {
+    region: Vec<u32>,
+    groups: Vec<String>,
+    project: Vec<u32>,
+    projects: Vec<String>,
+    hub: Vec<bool>,
+    /// Memória → nota do seu projeto: a ligação que prende cada uma ao centro.
+    belongs: Vec<(u32, u32)>,
+}
+
+/// Grupo e projeto de cada nó. A nota do projeto decide; sem nota, vale o nome que veio da pasta.
+/// Nota comum fica no grupo da sua pasta, e quem sobra segue os vizinhos.
+fn grouping(g: &core::GraphData, metas: &FxHashMap<String, &core::MemoryMeta>, known: &core::Projects) -> Grouping {
     let n = g.nodes.len();
-    let mut names: Vec<String> = Vec::new();
-    let mut index: FxHashMap<String, u32> = FxHashMap::default();
-    let mut region = vec![u32::MAX; n];
-    let mut pick = |name: String, names: &mut Vec<String>| -> u32 {
-        *index.entry(name.clone()).or_insert_with(|| {
-            names.push(name);
+    let (mut groups, mut projects): (Vec<String>, Vec<String>) = (Vec::new(), Vec::new());
+    let (mut group_at, mut project_at): (FxHashMap<String, u32>, FxHashMap<String, u32>) = (FxHashMap::default(), FxHashMap::default());
+    fn pick(name: &str, names: &mut Vec<String>, at: &mut FxHashMap<String, u32>) -> u32 {
+        *at.entry(name.to_string()).or_insert_with(|| {
+            names.push(name.to_string());
             names.len() as u32 - 1
         })
-    };
+    }
+    let mut out = Grouping { region: vec![u32::MAX; n], groups: vec![], project: vec![u32::MAX; n], projects: vec![], hub: vec![false; n], belongs: vec![] };
+    let pos: FxHashMap<&str, usize> = g.nodes.iter().enumerate().map(|(i, x)| (x.id.as_str(), i)).collect();
+    let group_of = |p: &core::Project| if p.group.trim().is_empty() { "Projetos".to_string() } else { p.group.clone() };
     for (i, node) in g.nodes.iter().enumerate() {
         if let Some(m) = metas.get(&node.id) {
-            if let Some(t) = m.tags.iter().find_map(|t| t.strip_prefix("project/")) {
-                region[i] = pick(title_cased(t), &mut names);
+            let Some(tag) = core::tags::project_of(&m.tags) else { continue };
+            match known.get(tag) {
+                Some(p) => {
+                    out.region[i] = pick(&group_of(p), &mut groups, &mut group_at);
+                    out.project[i] = pick(&p.title, &mut projects, &mut project_at);
+                    if let Some(&hub) = pos.get(p.note.as_str()) {
+                        out.belongs.push((i as u32, hub as u32));
+                    }
+                }
+                None => {
+                    out.region[i] = pick(UNREGISTERED_GROUP, &mut groups, &mut group_at);
+                    out.project[i] = pick(&title_cased(tag), &mut projects, &mut project_at);
+                }
             }
+        } else if let Some(p) = known.of_note(&node.id) {
+            out.region[i] = pick(&group_of(p), &mut groups, &mut group_at);
+            out.project[i] = pick(&p.title, &mut projects, &mut project_at);
+            out.hub[i] = true;
         } else {
             let parts: Vec<&str> = node.id.split('/').collect();
             if parts.len() > 2 {
-                region[i] = pick(title_cased(parts[1]), &mut names);
+                out.region[i] = pick(&title_cased(parts[1]), &mut groups, &mut group_at);
             }
         }
     }
-    let pos: FxHashMap<&str, usize> = g.nodes.iter().enumerate().map(|(i, x)| (x.id.as_str(), i)).collect();
     let edges: Vec<(usize, usize)> = g.edges.iter().filter_map(|e| Some((*pos.get(e.from.as_str())?, *pos.get(e.to.as_str())?))).collect();
     for _ in 0..4 {
         for &(a, b) in &edges {
-            if region[a] == u32::MAX && region[b] != u32::MAX {
-                region[a] = region[b];
-            } else if region[b] == u32::MAX && region[a] != u32::MAX {
-                region[b] = region[a];
+            if out.region[a] == u32::MAX && out.region[b] != u32::MAX {
+                out.region[a] = out.region[b];
+            } else if out.region[b] == u32::MAX && out.region[a] != u32::MAX {
+                out.region[b] = out.region[a];
             }
         }
     }
-    let other = if region.contains(&u32::MAX) { pick("Avulsos".into(), &mut names) } else { 0 };
-    region.iter_mut().filter(|r| **r == u32::MAX).for_each(|r| *r = other);
-    (region, names)
+    let other = if out.region.contains(&u32::MAX) { pick(GENERAL_GROUP, &mut groups, &mut group_at) } else { 0 };
+    out.region.iter_mut().filter(|r| **r == u32::MAX).for_each(|r| *r = other);
+    out.groups = groups;
+    out.projects = projects;
+    out
+}
+
+/// Projetos do cofre para a tela: os que têm nota e os que só existem como nome de pasta.
+fn project_list(metas: &[core::MemoryMeta], known: &core::Projects) -> Vec<ProjectInfo> {
+    let mut count: FxHashMap<String, u32> = FxHashMap::default();
+    for m in metas {
+        if let Some(p) = core::tags::project_of(&m.tags) {
+            *count.entry(known.canon(p)).or_insert(0) += 1;
+        }
+    }
+    let mut list: Vec<ProjectInfo> = known
+        .list
+        .iter()
+        .map(|p| ProjectInfo { slug: p.slug.clone(), title: p.title.clone(), group: p.group.clone(), note: Some(p.note.clone()), memories: count.remove(&p.slug).unwrap_or(0), ephemeral: false })
+        .collect();
+    let mut loose: Vec<(String, u32)> = count.into_iter().collect();
+    loose.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+    list.extend(loose.into_iter().map(|(slug, memories)| ProjectInfo { title: title_cased(&slug), ephemeral: core::projects::is_ephemeral(&slug), slug, group: String::new(), note: None, memories }));
+    list
 }
 
 fn verb(e: &Event) -> Option<(&'static str, u8)> {
@@ -263,6 +322,7 @@ fn build_model(b: &Brain, generation: &mut u64, last_key: &mut u64) -> core::Res
     let offset = crate::platform::utc_offset();
     let clock = Clock { today: stats::local_time(&core::util::now_ts(), offset).map_or(0, |t| t.0), offset };
     let mut m = Model { name: b.config().name.clone(), path: b.root().to_string_lossy().into_owned(), ..Default::default() };
+    let known = b.projects()?;
     let by_id: FxHashMap<String, &core::MemoryMeta> = metas.iter().map(|x| (x.id.clone(), x)).collect();
     let mut per_note: FxHashMap<&str, u32> = FxHashMap::default();
     for x in &metas {
@@ -302,6 +362,7 @@ fn build_model(b: &Brain, generation: &mut u64, last_key: &mut u64) -> core::Res
             tags: x.tags.clone(),
             uses: 0,
             held: x.quarantine_reason.as_deref().map(held_reason),
+            project: core::tags::project_of(&x.tags).map(|p| known.canon(p)),
         })
         .collect();
     m.quarantined = metas.iter().filter(|x| x.state == MemoryState::Quarantined).count() as u32;
@@ -322,7 +383,8 @@ fn build_model(b: &Brain, generation: &mut u64, last_key: &mut u64) -> core::Res
             e.to = p.to_string();
         }
     }
-    let (region, names) = regions(&g, &by_id);
+    let groups = grouping(&g, &by_id, &known);
+    m.projects = project_list(&metas, &known);
     let pos: FxHashMap<&str, u32> = g.nodes.iter().enumerate().map(|(i, x)| (x.id.as_str(), i as u32)).collect();
     let nodes = g
         .nodes
@@ -333,14 +395,17 @@ fn build_model(b: &Brain, generation: &mut u64, last_key: &mut u64) -> core::Res
             kind: x.mem_type.map_or(NodeKind::Note, |t| NodeKind::Memory(mem_kind(t))),
             title: if x.state == Some(MemoryState::Quarantined) { "Memória em revisão".into() } else { shown(&x.title) },
             weight: x.weight,
-            region: region[i],
+            region: groups.region[i],
+            project: groups.project[i],
+            hub: groups.hub[i],
         })
         .collect();
     for e in g.edges.iter().filter(|e| e.kind == "wikilink") {
         m.backlinks.entry(e.to.clone()).or_default().push(e.from.clone());
     }
-    let edges = g.edges.iter().filter_map(|e| Some((*pos.get(e.from.as_str())?, *pos.get(e.to.as_str())?, e.weight))).collect();
-    m.graph = Graph { nodes, edges, regions: names };
+    let mut edges: Vec<(u32, u32, f32)> = g.edges.iter().filter_map(|e| Some((*pos.get(e.from.as_str())?, *pos.get(e.to.as_str())?, e.weight))).collect();
+    edges.extend(groups.belongs.iter().map(|&(a, b)| (a, b, 1.5)));
+    m.graph = Graph { nodes, edges, regions: groups.groups, projects: groups.projects };
 
     let events = journal::read_all(b.root());
     let undone: FxHashSet<&str> = events.iter().filter_map(|e| e.undoes.as_deref()).collect();
@@ -408,6 +473,9 @@ fn build_model(b: &Brain, generation: &mut u64, last_key: &mut u64) -> core::Res
         })
         .collect();
 
+    let home = crate::platform::home_dir();
+    m.global_links = ["claude-code", "copilot"].into_iter().filter(|c| core::connect::global_status(b.root(), &home, c) == LinkState::On).map(str::to_string).collect();
+
     m.profile = b
         .portrait()?
         .groups
@@ -430,6 +498,14 @@ fn build_model(b: &Brain, generation: &mut u64, last_key: &mut u64) -> core::Res
     let mut key = 0xcbf29ce484222325u64;
     for n in &m.graph.nodes {
         for b in n.id.bytes() {
+            key = (key ^ b as u64).wrapping_mul(0x100000001b3);
+        }
+    }
+    for n in &m.graph.nodes {
+        key = (key ^ (n.region as u64) << 1 ^ n.project as u64).wrapping_mul(0x100000001b3);
+    }
+    for name in m.graph.regions.iter().chain(&m.graph.projects) {
+        for b in name.bytes() {
             key = (key ^ b as u64).wrapping_mul(0x100000001b3);
         }
     }
@@ -465,6 +541,7 @@ fn agenda_text(kind: &str, n: usize) -> String {
         "note_corrected" => s("1 nota com correção sua", "notas com correção sua"),
         "idle" => s("1 memória sem uso há muito tempo", "memórias sem uso há muito tempo"),
         "signal" => s("1 correção sua ainda sem virar memória", "correções suas ainda sem virar memória"),
+        "title" => s("1 memória com título que não se explica sozinho", "memórias com título que não se explica sozinho"),
         _ => s("1 pendência", "pendências"),
     }
 }
@@ -541,8 +618,8 @@ impl Worker {
                 let client = stats::client_label(&e.client);
                 match e.ev {
                     EventKind::Read => {
-                        if let Some(t) = e.target.clone().or_else(|| e.path.clone()) {
-                            self.send(Msg::Live(Live::Read { node: t, client }));
+                        if let Some(t) = e.target.as_deref().or(e.path.as_deref()) {
+                            self.send(Msg::Live(Live::Read { node: node_id(t).to_string(), client }));
                         }
                     }
                     EventKind::Searched => {
@@ -773,6 +850,41 @@ impl Worker {
                 self.dirty = true;
             }
             // Abrir a frase e sair sem mudar nada não é correção.
+            Cmd::SetProject { id, hash, project } => {
+                let general = project.is_none();
+                match b.apply(CoreChange::SetProject { id, base_hash: Some(hash), project }, Actor::person()) {
+                    Ok(a) if !matches!(a.outcome, core::Outcome::Rejected { .. }) => self.toast(if general { "Agora vale em todo projeto." } else { "Projeto da memória alterado." }),
+                    _ => self.toast("A memória mudou. Abra de novo antes de mover."),
+                }
+                self.dirty = true;
+            }
+            Cmd::MoveProject { from, to } => {
+                let moved = b.move_project(&from, to.as_deref(), &Actor::person()).unwrap_or(0);
+                self.toast(match (moved, &to) {
+                    (0, _) => "Nenhuma memória para mover.".to_string(),
+                    (1, None) => "1 memória agora vale em todo projeto.".to_string(),
+                    (n, None) => format!("{n} memórias agora valem em todo projeto."),
+                    (1, Some(_)) => "1 memória mudou de projeto.".to_string(),
+                    (n, Some(_)) => format!("{n} memórias mudaram de projeto."),
+                });
+                self.dirty = true;
+            }
+            Cmd::CreateProject { slug, group } => {
+                let known = b.projects().unwrap_or_default();
+                if known.get(&slug).is_some() {
+                    self.toast("Esse projeto já tem nota.");
+                    return;
+                }
+                // A nota nova fica ao lado das outras notas de projeto.
+                let folder = known.list.first().and_then(|p| p.note.rsplit_once('/')).map_or("notes/projetos".to_string(), |(dir, _)| dir.to_string());
+                let path = format!("{folder}/{slug}.md");
+                let text = core::projects::note_template(&title_cased(&slug), &group, None, &[]);
+                match b.save_note(&path, &text, None) {
+                    Ok(_) => self.toast(format!("Nota do projeto criada em {path}.")),
+                    Err(e) => self.toast(format!("Não consegui criar a nota: {e}")),
+                }
+                self.dirty = true;
+            }
             Cmd::Correct { memory: Some(id), text } if b.memory(&id).ok().flatten().is_some_and(|m| to_you(m.memory.summary.trim()) == text || to_you(m.memory.title.trim()) == text) => {}
             Cmd::Correct { memory: Some(id), text } => {
                 let hash = b.memory(&id).ok().flatten().map(|m| m.meta.hash);

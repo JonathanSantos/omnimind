@@ -244,6 +244,8 @@ Falsos positivos custam pouco: o sinal é literal, curto, e some da agenda se a 
 
 `briefing(cwd, client) -> texto ≤ 7.000 caracteres`, com cortes declarados. O hook usa `briefing_light`, que lê só `memories/` e sinais dos dois meses mais recentes, em paralelo, sem abrir o índice. Frase de instrução fica fora em qualquer autoridade. Ordem: correções recentes, preferências firmes, decisões do projeto, procedimentos, ponteiros. Só `active`. Cada linha traz data e origem, em tom de fato, e `[projeto]` quando a memória pertence a um. Com `cwd`, o corpo traz só o projeto atual e o que não tem projeto. De outros projetos entram até 12 títulos, sem episódios e com procedimentos primeiro, sob "Outros projetos: não valem aqui sem confirmar". Correção aberta de outro projeto fica nele. Sem `cwd`, nada é outro projeto. Termina dizendo quantas memórias ficaram de fora e como buscá-las.
 
+**Projeto** é o que uma nota declara (`Grupo`, `Pasta`, `Apelidos`), não o nome da pasta. O `cwd` é resolvido por `Projects::current`: pasta declarada ou apelido levam ao projeto da nota, pasta desconhecida vale com o próprio nome, e pasta descartável não tem projeto. As tags são comparadas pelo nome canônico. O hook lê a lista em `.omnimind/projects.json`, gravada junto com o instantâneo. Regras completas em `decisions/0009-project-is-a-note.md`.
+
 ## 9. Testes obrigatórios do núcleo
 
 - 28 danos ao estado privado: resposta idêntica ao índice recriado.

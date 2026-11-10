@@ -17,6 +17,10 @@ pub struct SettingsView {
 pub struct SettingsOut {
     pub toggle_theme: bool,
     pub open_vault: bool,
+    /// Projeto provisório que a pessoa quer registrar com uma nota.
+    pub create_project: Option<String>,
+    /// Projeto cujas memórias a pessoa quer levar para outro lugar.
+    pub move_project: Option<String>,
 }
 
 impl SettingsView {
@@ -42,10 +46,15 @@ impl SettingsView {
         for (name, slug, about) in [("Claude Code", "claude-code", "Lembra entre sessões, aprende quando você corrige."), ("GitHub Copilot", "copilot", "Lembra entre sessões neste projeto.")] {
             let on = model.links.iter().filter(|l| l.client == slug && l.state == LinkState::On).count();
             let seen = model.clients.iter().find(|c| c.name == slug).map_or(String::new(), |c| format!(" · última sessão {}", c.last_seen));
-            let status = match on {
-                0 => "Desligado".to_string(),
-                1 => format!("Ligado em 1 projeto{seen}"),
-                n => format!("Ligado em {n} projetos{seen}"),
+            // A ligação global vale em qualquer pasta: é a que mais importa dizer.
+            let global = model.global_links.iter().any(|c| c == slug);
+            let status = match (global, on) {
+                (true, 0) => format!("Ligado em todos os projetos{seen}"),
+                (true, 1) => format!("Ligado em todos os projetos, e direto em 1{seen}"),
+                (true, n) => format!("Ligado em todos os projetos, e direto em {n}{seen}"),
+                (false, 0) => "Desligado".to_string(),
+                (false, 1) => format!("Ligado em 1 projeto{seen}"),
+                (false, n) => format!("Ligado em {n} projetos{seen}"),
             };
             let top_y = y;
             y += Self::row(ui, x, y, col, name, &format!("{about} {status}."), 330.0);
@@ -65,10 +74,11 @@ impl SettingsView {
             y += 8.0 + ui.para(&self.message, ui_style(13.0).color(THEME.acc), x, y + 8.0, col) + 8.0;
         }
         y += 24.0;
-        ui.section("Projetos", x, y);
+        ui.section("Projetos ligados", x, y);
         y += 24.0;
         if model.links.is_empty() {
-            y += ui.para("Nenhum projeto ainda. Use Conectar projeto para ligar o primeiro.", ui_style(13.0).color(THEME.mute), x, y + 8.0, col) + 16.0;
+            let none = if model.global_links.is_empty() { "Nenhum projeto ainda. Use Conectar projeto para ligar o primeiro." } else { "Nenhuma pasta ligada direto. A ligação global já cobre todas." };
+            y += ui.para(none, ui_style(13.0).color(THEME.mute), x, y + 8.0, col) + 16.0;
         }
         for l in &model.links {
             let label = crate::stats::client_label(&l.client);
@@ -91,6 +101,25 @@ impl SettingsView {
                 let at = if fixed { x + col - 96.0 } else { x + col - 148.0 };
                 if ui.button(id(("forget", key)), Rect::new(at, top_y + 11.0, 96.0, 34.0), "Remover") {
                     let _ = tx.send(Cmd::ForgetLink { client: l.client.clone(), project: l.project.clone() });
+                }
+            }
+        }
+        let loose: Vec<&crate::model::ProjectInfo> = model.projects.iter().filter(|p| p.note.is_none() && p.memories > 0).collect();
+        if !loose.is_empty() {
+            y += 24.0;
+            ui.section("Projetos sem nota", x, y);
+            y += 22.0;
+            y += ui.para("Nasceram do nome da pasta onde a IA estava. Crie a nota para registrar o projeto num grupo, ou leve as memórias para onde elas pertencem.", ui_style(13.0).color(THEME.mute), x, y, col) + 10.0;
+            for p in loose {
+                let count = if p.memories == 1 { "1 memória".to_string() } else { format!("{} memórias", p.memories) };
+                let about = if p.ephemeral { format!("{count} · pasta descartável, não é um projeto") } else { format!("{count} · ainda sem nota") };
+                let top_y = y;
+                y += Self::row(ui, x, y, col, &p.title, &about, 230.0);
+                if ui.button(id(("project-move", &p.slug)), Rect::new(x + col - 96.0, top_y + 11.0, 96.0, 34.0), "Mover…") {
+                    out.move_project = Some(p.slug.clone());
+                }
+                if !p.ephemeral && ui.button(id(("project-note", &p.slug)), Rect::new(x + col - 212.0, top_y + 11.0, 108.0, 34.0), "Criar nota") {
+                    out.create_project = Some(p.slug.clone());
                 }
             }
         }

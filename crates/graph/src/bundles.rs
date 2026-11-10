@@ -80,15 +80,30 @@ pub fn build(input: &Input) -> Scene {
         theme_span[x.theme as usize].as_mut().unwrap().1 = at;
     }
     let mid = |s: (f32, f32)| (s.0 + s.1) * 0.5;
+    // Só projeto com corpo ganha nome na borda: com um item, o nome está na ficha dele.
+    let mut sub_size: HashMap<u32, usize> = HashMap::new();
+    for x in &input.nodes {
+        *sub_size.entry(x.sub).or_insert(0) += 1;
+    }
+    let named_subs: std::collections::HashSet<u32> = input.sub_names.iter().filter(|(id, name)| !name.is_empty() && sub_size.get(id).copied().unwrap_or(0) >= 4).map(|(id, _)| *id).collect();
     for (g, s) in theme_span.iter().enumerate() {
         let Some(s) = *s else { continue };
         let pts: Vec<[f32; 2]> = (0..=48).map(|k| polar(s.0 + (s.1 - s.0) * k as f32 / 48.0, RADIUS + 9.0)).collect();
         mesh.ribbon(&pts, &Stroke { width: 2.2, alpha: 0.95, delay: g as f32 * 0.028, themes: [g as f32; 2] });
         let a = mid(s);
         let c = a.cos();
+        // Tema com projetos nomeados: o nome do grupo vai mais para fora e deixa a faixa de perto para eles.
+        let crowded = input.sub_names.iter().any(|(id, _)| named_subs.contains(id) && input.nodes.iter().any(|x| x.sub == *id && x.theme as usize == g));
+        let out = if crowded { 20.0 } else { 0.0 };
         if let Some(t) = input.themes.get(g) {
-            scene.labels.push(Label { text: t.clone(), x: c * (RADIUS + 26.0), y: a.sin() * (RADIUS + 22.0), anchor: if c > 0.35 { 0.0 } else if c < -0.35 { 1.0 } else { 0.5 } });
+            scene.labels.push(Label { text: t.clone(), x: c * (RADIUS + 26.0 + out), y: a.sin() * (RADIUS + 22.0 + out), anchor: if c > 0.35 { 0.0 } else if c < -0.35 { 1.0 } else { 0.5 }, minor: false });
         }
+    }
+    for (id, name) in &input.sub_names {
+        let (Some(s), true) = (sub_span.get(id), named_subs.contains(id)) else { continue };
+        let a = mid(*s);
+        let c = a.cos();
+        scene.labels.push(Label { text: name.clone(), x: c * (RADIUS + 20.0), y: a.sin() * (RADIUS + 18.0), anchor: if c > 0.35 { 0.0 } else if c < -0.35 { 1.0 } else { 0.5 }, minor: true });
     }
     let size = |u: f32| match tier {
         0 => 2.0 + u * 3.6,

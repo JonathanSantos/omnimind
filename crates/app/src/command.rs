@@ -19,6 +19,12 @@ pub enum Cmd {
     Forget(String),
     /// `hash` é o do texto que a pessoa viu: se mudou, a aprovação não vale.
     Promote { id: String, hash: String },
+    /// Muda o projeto de uma memória. `None` a torna geral.
+    SetProject { id: String, hash: String, project: Option<String> },
+    /// Leva todas as memórias de um projeto para outro, ou as torna gerais.
+    MoveProject { from: String, to: Option<String> },
+    /// Cria a nota que registra um projeto provisório, no grupo escolhido.
+    CreateProject { slug: String, group: String },
     Correct { memory: Option<String>, text: String },
     Search { query: String, seq: u64 },
     Connect { client: String, project: String },

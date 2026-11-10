@@ -217,7 +217,7 @@ pub fn compute(s: &Sources<'_>) -> Metrics {
         let person = is_person(&e.client);
         let mut read: Option<&str> = None;
         match e.ev {
-            EventKind::Read => read = e.target.as_deref().or(e.path.as_deref()),
+            EventKind::Read => read = e.target.as_deref().or(e.path.as_deref()).map(crate::data::node_id),
             EventKind::Tool if e.kind.as_deref() == Some("note_opened") => read = e.path.as_deref(),
             EventKind::Wrote if e.before.is_none() => {
                 d.memories += 1;
@@ -384,7 +384,7 @@ mod tests {
     }
 
     fn memory(id: &str) -> Memory {
-        Memory { id: id.into(), hash: String::new(), kind: MemKind::Decision, title: format!("T {id}"), summary: String::new(), body: String::new(), state: MemState::Active, authority: Authority::Agent, origin: String::new(), client: String::new(), session: String::new(), quote: String::new(), note: None, created: String::new(), tags: vec![], uses: 0, held: None }
+        Memory { id: id.into(), hash: String::new(), kind: MemKind::Decision, title: format!("T {id}"), summary: String::new(), body: String::new(), state: MemState::Active, authority: Authority::Agent, origin: String::new(), client: String::new(), session: String::new(), quote: String::new(), note: None, created: String::new(), tags: vec![], uses: 0, held: None, project: None }
     }
 
     #[test]
@@ -398,7 +398,7 @@ mod tests {
 
     #[test]
     fn windows_and_rankings_follow_the_journal() {
-        let graph = Graph { nodes: vec![GraphNode { id: "m1".into(), kind: NodeKind::Memory(MemKind::Decision), title: "T".into(), weight: 1.0, region: 0 }], edges: vec![], regions: vec!["Rota".into()] };
+        let graph = Graph { nodes: vec![GraphNode { id: "m1".into(), kind: NodeKind::Memory(MemKind::Decision), title: "T".into(), weight: 1.0, region: 0, project: u32::MAX, hub: false }], edges: vec![], regions: vec!["Rota".into()], projects: vec![] };
         let memories = vec![memory("m1"), memory("m2")];
         let mut events = vec![];
         let read = |day: &str, target: &str, client: &str| {
@@ -448,6 +448,20 @@ mod tests {
         assert_eq!(m.active, 2);
         assert_eq!(m.heat.len(), 91);
         assert_eq!(m.reads_30["m1"], 3);
+    }
+
+    #[test]
+    fn a_note_read_by_the_ai_counts_under_the_same_path_the_screens_use() {
+        // O diário grava a nota como `note:<caminho>`; as telas procuram pelo caminho.
+        let mut by_ai = ev(EventKind::Read, "2026-11-01", "claude-code");
+        by_ai.target = Some("note:notes/a.md".into());
+        by_ai.path = Some("notes/a.md".into());
+        let mut by_person = ev(EventKind::Tool, "2026-11-01", "person");
+        by_person.kind = Some("note_opened".into());
+        by_person.path = Some("notes/a.md".into());
+        let m = compute(&Sources { events: &[by_ai, by_person], notes: &[], memories: &[], graph: &Graph::default(), today: day_number("2026-11-01").unwrap(), offset: 0 });
+        assert_eq!(m.reads_30.get("notes/a.md"), Some(&2), "{:?}", m.reads_30);
+        assert!(!m.reads_30.contains_key("note:notes/a.md"));
     }
 
     #[test]

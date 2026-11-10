@@ -127,6 +127,9 @@ A interface fala a língua da pessoa. O código e a CLI mantêm os nomes interno
 | Na tela | Significa | Interno |
 |---|---|---|
 | Cofre | A pasta que guarda notas e memórias | `brain`, flag `--brain` |
+| Projeto | O que uma nota declara, com pasta e apelidos | `Project`, tag `project/<slug>` |
+| Grupo | A categoria acima do projeto, que dá a cor no grafo | `Decl::group`, `Graph::regions` |
+| Geral | Memória sem projeto: vale em todo projeto | sem tag `project/` |
 | Nota | O que você escreve | `note` |
 | Memória | O que a IA aprende | `memory` |
 | Atividade | O que cada sessão mudou, com desfazer | `sessions` no modelo |

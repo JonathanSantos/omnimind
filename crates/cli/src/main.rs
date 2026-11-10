@@ -14,7 +14,7 @@ pub struct Args {
     pub flags: HashMap<String, String>,
 }
 
-const BOOL_FLAGS: &[&str] = &["json", "print", "global", "old", "dry-run"];
+const BOOL_FLAGS: &[&str] = &["json", "print", "global", "old", "dry-run", "apply"];
 
 impl Args {
     pub fn parse(raw: &[String]) -> Args {
@@ -79,6 +79,8 @@ const USAGE: &str = "omnimind <comando>
   undo EVENTO | --session S       desfaz um evento ou uma sessão inteira
   log [--limit N]                 diário, o mais novo por último
   agenda | sleep | portrait       ciclo de vida
+  projects [--apply]              projetos do cofre e o que as regras mudariam nas memórias
+  projects --move P [--to OUTRO]  leva as memórias de um projeto para outro; sem --to, viram gerais
   export --out PASTA              exporta memórias, notas e diário
   import-markdown ORIGEM          importa uma pasta de Markdown
   mcp --brain PASTA [--client C]  servidor MCP por stdio

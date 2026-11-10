@@ -1061,6 +1061,19 @@ pub fn clean_for_agent(s: &str) -> bool {
     !f.suspicious() && f.secret.is_none()
 }
 
+/// Título que só faz sentido dentro da conversa em que nasceu: "Sim, usar a tabela", "A: fila em disco".
+/// Fora dela, na busca e no resumo, não diz do que se trata. É triagem, não regra de recusa.
+pub fn bare_title(title: &str) -> bool {
+    let t = title.trim().to_lowercase();
+    let mut words = t.split_whitespace();
+    let Some(first) = words.next() else { return true };
+    // "A: ...", "B: ...": a letra de uma opção que só existia na pergunta.
+    let option = first.len() == 2 && first.ends_with(':') && first.starts_with(|c: char| c.is_ascii_alphabetic());
+    let head = first.trim_end_matches([',', '.', '!', ':', ';']);
+    const REPLIES: [&str; 16] = ["sim", "não", "nao", "ok", "okay", "isso", "exato", "perfeito", "fechado", "beleza", "gostei", "aprovo", "aprovado", "yes", "no", "yep"];
+    option || REPLIES.contains(&head) || t.starts_with("eu acho ") || t.starts_with("acho que ")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1203,5 +1216,15 @@ mod tests {
         assert!(inspect("ｈｕｍａｎ").disguised);
         assert!(inspect("раураl").disguised);
         assert!(!inspect("ação com acento").disguised);
+    }
+
+    #[test]
+    fn a_reply_is_not_a_title() {
+        for t in ["Sim, usar a tabela", "A: fila em disco", "Sim, passei", "Sim, v2 por lote", "Aprovo as telas", "Gostei mais do segundo, podemos manter", "Eu acho que os três ficaram bons", "ok", "  "] {
+            assert!(bare_title(t), "{t}");
+        }
+        for t in ["Fila síncrona no Cuscuz", "Deploy em duas etapas", "Prefiro evidência", "Vamos usar a grade no mapa da Rota Certa", "trilho: índice das decisões 1 a 14", "Registrar só a decisão que muda o contrato", "Isolamento por cofre", "Nota do dia"] {
+            assert!(!bare_title(t), "{t}");
+        }
     }
 }

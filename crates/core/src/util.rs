@@ -304,6 +304,13 @@ pub fn invalid<T>(msg: impl Into<String>) -> Result<T> {
     Err(Error::Invalid(msg.into()))
 }
 
+/// Pasta pessoal. `HOME` vale em todo lugar, o que mantém os testes isolados;
+/// no Windows ela quase nunca existe, e a resposta é `USERPROFILE`.
+pub fn home_dir() -> Option<std::path::PathBuf> {
+    let set = |k: &str| std::env::var_os(k).filter(|v| !v.is_empty());
+    set("HOME").or_else(|| if cfg!(windows) { set("USERPROFILE") } else { None }).map(std::path::PathBuf::from)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -343,11 +350,4 @@ mod tests {
     fn truncate_respects_boundaries() {
         assert_eq!(truncate_chars("ação", 3), "a\u{e7}");
     }
-}
-
-/// Pasta pessoal. `HOME` vale em todo lugar, o que mantém os testes isolados;
-/// no Windows ela quase nunca existe, e a resposta é `USERPROFILE`.
-pub fn home_dir() -> Option<std::path::PathBuf> {
-    let set = |k: &str| std::env::var_os(k).filter(|v| !v.is_empty());
-    set("HOME").or_else(|| if cfg!(windows) { set("USERPROFILE") } else { None }).map(std::path::PathBuf::from)
 }

@@ -34,6 +34,7 @@ Toda sessão de IA começa do zero. Você repete o gerenciador de pacotes, o for
 | **Nota** | O que você escreve, em Markdown |
 | **Memória** | O que a IA aprende, com data, origem e autoridade |
 | **Cofre** | A pasta que guarda as duas. Um arquivo comum, sem conta e sem nuvem |
+| **Projeto** | O que uma nota declara, com grupo e pasta. A memória de um projeto não vaza para outro |
 
 **Três ideias sustentam o produto:**
 

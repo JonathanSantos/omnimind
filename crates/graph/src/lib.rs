@@ -36,8 +36,10 @@ pub struct Node {
     pub fresh: bool,
     /// Identidade estável entre reconstruções: o mesmo nó fica no mesmo lugar.
     pub key: u64,
-    /// Nota, e não memória. Só o Universo desenha as duas de formas diferentes.
+    /// Nota, e não memória: anel em Feixes e Raízes, planeta no Universo.
     pub note: bool,
+    /// Nota que declara um projeto: é o centro do seu subtema.
+    pub hub: bool,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -52,6 +54,8 @@ pub struct Input {
     pub fresh: Vec<u32>,
     /// Nome de cada fatia.
     pub themes: Vec<String>,
+    /// Nome dos subtemas que têm nome: os projetos, quando a cor é o grupo.
+    pub sub_names: Vec<(u32, String)>,
 }
 
 /// Trecho do índice de triângulos. `rev` inverte o sentido do desenho.
@@ -87,6 +91,8 @@ pub struct Label {
     pub y: f32,
     /// Âncora horizontal: 0 à esquerda, 0,5 no centro, 1 à direita.
     pub anchor: f32,
+    /// Nome de subtema, como um projeto dentro do grupo: menor e mais apagado.
+    pub minor: bool,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -320,7 +326,7 @@ mod tests {
     fn sample(n: usize, fresh: usize) -> Input {
         let mut r = rng(11);
         let total = n + fresh;
-        let mut nodes: Vec<Node> = (0..total).map(|i| Node { theme: (i % 5) as u8, sub: 0, uses: r(), fresh: i >= n, key: i as u64 * 977 + 1, note: false }).collect();
+        let mut nodes: Vec<Node> = (0..total).map(|i| Node { theme: (i % 5) as u8, sub: 0, uses: r(), fresh: i >= n, key: i as u64 * 977 + 1, note: false, hub: false }).collect();
         let mut links = vec![];
         for i in 1..n {
             links.push(((r() * i as f32) as u32, i as u32));
@@ -330,7 +336,7 @@ mod tests {
             links.push(((i - n) as u32, i as u32));
         }
         assign_subs(&mut nodes, &links);
-        Input { nodes, links, weights: vec![], base_links, fresh: (n as u32..total as u32).collect(), themes: ["A", "B", "C", "D", "E"].map(String::from).to_vec() }
+        Input { nodes, links, weights: vec![], sub_names: vec![], base_links, fresh: (n as u32..total as u32).collect(), themes: ["A", "B", "C", "D", "E"].map(String::from).to_vec() }
     }
 
     fn check(form: Form, n: usize, fresh: usize) {
@@ -383,7 +389,7 @@ mod tests {
     fn same_key_stays_in_place_when_others_arrive() {
         let a = sample(300, 0);
         let mut b = a.clone();
-        b.nodes.push(Node { theme: 0, sub: 0, uses: 0.1, fresh: false, key: 999_999, note: false });
+        b.nodes.push(Node { theme: 0, sub: 0, uses: 0.1, fresh: false, key: 999_999, note: false, hub: false });
         let (x, y) = (build(Form::Roots, &a), build(Form::Roots, &b));
         let moved = (x.items[10].x - y.items[10].x).hypot(x.items[10].y - y.items[10].y);
         assert!(moved < 40.0, "andou {moved}");

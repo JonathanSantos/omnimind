@@ -417,6 +417,66 @@ fn dispatch(cmd: &str, args: &Args) -> Result<i32, omnimind_core::Error> {
             }
             Ok(0)
         }
+        "projects" => {
+            let b = open(args)?;
+            let known = b.projects()?;
+            let plan = b.project_plan()?;
+            let mut count: std::collections::BTreeMap<String, usize> = Default::default();
+            for m in b.memories()? {
+                if let Some(p) = omnimind_core::tags::project_of(&m.tags) {
+                    *count.entry(known.canon(p)).or_default() += 1;
+                }
+            }
+            // `--move PROJETO [--to OUTRO]`: leva as memórias de um projeto para outro. Sem `--to`, viram gerais.
+            if let Some(from) = args.flag("move") {
+                let to = args.flag("to");
+                let n = b.move_project(from, to, &Actor::person())?;
+                let dest = to.map_or("gerais".to_string(), |t| format!("do projeto {}", known.title(t)));
+                println!("{n} memórias de {} agora são {dest}. Cada mudança está no diário e pode ser desfeita.", safe(from));
+                return Ok(0);
+            }
+            let apply = args.has("apply");
+            let mut moved = 0;
+            if apply {
+                // Quem roda a CLI é a pessoa: é ela que muda o projeto de uma memória.
+                for m in &plan {
+                    let done = b.apply(Change::SetProject { id: m.id.clone(), base_hash: Some(m.hash.clone()), project: m.to.clone() }, Actor::person())?;
+                    moved += (done.outcome == Outcome::Written) as usize;
+                }
+            }
+            if json_out {
+                print_json(&serde_json::json!({"projects": known.list, "memories": count, "plan": plan, "applied": apply, "moved": moved}));
+                return Ok(0);
+            }
+            println!("Com nota ({}):", known.list.len());
+            for p in &known.list {
+                let n = count.remove(&p.slug).unwrap_or(0);
+                if n > 0 {
+                    println!("  {} [{}] · {} memórias", safe(&p.title), safe(&p.group), n);
+                }
+            }
+            println!("Sem nota ({}):", count.len());
+            for (slug, n) in &count {
+                let kind = if omnimind_core::projects::is_ephemeral(slug) { "pasta descartável" } else { "ainda sem nota" };
+                println!("  {} · {} memórias · {}", safe(slug), n, kind);
+            }
+            println!("{} ({}):", if apply { "Mudanças aplicadas" } else { "Mudanças que as regras fariam" }, plan.len());
+            for m in &plan {
+                let to = m.to.as_deref().map_or("geral".to_string(), |t| known.title(t));
+                // Mesmo projeto dos dois lados: a memória tinha duas tags de projeto, e a segunda sai.
+                if m.from == m.to {
+                    println!("  {} (sai a segunda tag de projeto) · {} [{}]", safe(&to), safe(&m.title), m.id);
+                } else {
+                    println!("  {} -> {} · {} [{}]", m.from.as_deref().unwrap_or("geral"), safe(&to), safe(&m.title), m.id);
+                }
+            }
+            if apply {
+                println!("{moved} memórias mudaram. Cada mudança está no diário e pode ser desfeita.");
+            } else if !plan.is_empty() {
+                println!("Nada foi alterado. Rode de novo com --apply para aplicar.");
+            }
+            Ok(0)
+        }
         "portrait" => {
             let b = open(args)?;
             let p = b.portrait()?;

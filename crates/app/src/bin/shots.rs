@@ -38,10 +38,16 @@ fn main() {
     h.shot(&format!("{dir}/03-graph-roots.png"));
 
     let m = demo::model();
-    for n in m.memories.iter().step_by(9).take(3) {
-        mtx.send(Msg::Live(Live::Read { node: n.id.clone(), client: "Claude Code".into() })).unwrap();
+    // Três leituras em sequência, do que estiver no cofre aberto: memória, nota, memória.
+    let seen = h.app.model.clone();
+    let mut chain: Vec<String> = seen.memories.iter().step_by(9).take(2).map(|n| n.id.clone()).collect();
+    if let Some(n) = seen.notes.get(seen.notes.len() / 3) {
+        chain.insert(1, n.path.clone());
     }
-    h.run(36);
+    for (k, id) in chain.iter().enumerate() {
+        mtx.send(Msg::Live(Live::Read { node: id.clone(), client: "Claude Code".into() })).unwrap();
+        h.run(if k + 1 == chain.len() { 30 } else { 60 });
+    }
     h.shot(&format!("{dir}/04-graph-reading.png"));
     h.settle(300);
 

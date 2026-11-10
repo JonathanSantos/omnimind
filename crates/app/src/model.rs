@@ -99,6 +99,8 @@ pub struct Memory {
     pub uses: u32,
     /// Por que ficou retida, quando ficou.
     pub held: Option<String>,
+    /// Projeto da memória, já pelo nome da nota. `None`: geral, vale em todo projeto.
+    pub project: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -114,14 +116,34 @@ pub struct GraphNode {
     pub title: String,
     /// Uso útil acumulado: engrossa o galho e aumenta o ponto.
     pub weight: f32,
+    /// Grupo, como índice em `Graph::regions`.
     pub region: u32,
+    /// Projeto, como índice em `Graph::projects`. `u32::MAX`: nenhum.
+    pub project: u32,
+    /// Nota que declara o projeto: o centro dele no grafo.
+    pub hub: bool,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct Graph {
     pub nodes: Vec<GraphNode>,
     pub edges: Vec<(u32, u32, f32)>,
+    /// Grupos: a categoria acima do projeto.
     pub regions: Vec<String>,
+    pub projects: Vec<String>,
+}
+
+/// Um projeto do cofre, com ou sem nota.
+#[derive(Clone, Debug, Default)]
+pub struct ProjectInfo {
+    pub slug: String,
+    pub title: String,
+    pub group: String,
+    /// Nota que o declara. Sem ela o projeto é provisório: nasceu do nome de uma pasta.
+    pub note: Option<String>,
+    pub memories: u32,
+    /// Veio de uma pasta descartável: não é projeto, é o que sobrou sem dono.
+    pub ephemeral: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -200,6 +222,9 @@ pub struct Model {
     pub metrics: crate::stats::Metrics,
     pub clients: Vec<Client>,
     pub links: Vec<Link>,
+    pub projects: Vec<ProjectInfo>,
+    /// Clientes ligados em todos os projetos de uma vez, pela pasta pessoal.
+    pub global_links: Vec<String>,
     pub generation: u64,
     /// Nota → notas que apontam para ela.
     pub backlinks: std::collections::HashMap<String, Vec<String>>,

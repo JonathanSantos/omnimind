@@ -63,6 +63,8 @@ pub struct Cosmos {
     /// Linhas de constelação da base: o esqueleto, não todas as ligações.
     pub lines: Vec<(u32, u32)>,
     pub clusters: Vec<Cluster>,
+    /// Sistemas: os subtemas com nome, cada projeto em volta da sua nota.
+    pub systems: Vec<Cluster>,
     /// Raio que contém tudo, a partir da origem.
     pub radius: f32,
     pub tier: usize,
@@ -175,11 +177,14 @@ pub fn build(input: &Input) -> Cosmos {
         let r = radius_of(x.theme);
         let list = &subs[t];
         let at = list.iter().position(|s| *s == x.sub).unwrap_or(0);
-        let corner = if list.len() < 2 { [0.0; 3] } else { mul(fibonacci(at, list.len()), r * 0.6) };
+        // Subtema com nome é um projeto: fica mais afastado dos outros, para se ler como um sistema.
+        let named = input.sub_names.iter().any(|(id, _)| *id == x.sub);
+        let corner = if list.len() < 2 { [0.0; 3] } else { mul(fibonacci(at, list.len()), r * if named { 0.7 } else { 0.6 }) };
         let mut rand = rng(x.key.wrapping_mul(0x9E3779B97F4A7C15) ^ 0xD1B54A32D192ED03);
         // Ponto dentro de uma bola: a raiz cúbica mantém a densidade igual do centro à borda.
         let dir = unit([rand() * 2.0 - 1.0, rand() * 2.0 - 1.0, rand() * 2.0 - 1.0]);
-        let spread = r * if list.len() < 2 { 0.9 } else { 0.42 } * rand().cbrt();
+        // A nota do projeto fica no meio do seu canto: o resto do projeto se arruma em volta.
+        let spread = if x.hub { 0.0 } else { r * if list.len() < 2 { 0.9 } else if named { 0.3 } else { 0.42 } * rand().cbrt() };
         pos.push(add(center[t], add(corner, mul(dir, spread))));
     }
 
@@ -215,7 +220,7 @@ pub fn build(input: &Input) -> Cosmos {
         .enumerate()
         .map(|(i, x)| {
             reach = reach.max(len(pos[i]));
-            Body { pos: pos[i], size: size(x.uses), theme: x.theme, note: x.note, fresh: x.fresh, delay: 0.0, neighbors: Vec::new() }
+            Body { pos: pos[i], size: size(x.uses) * if x.hub { 1.45 } else { 1.0 }, theme: x.theme, note: x.note, fresh: x.fresh, delay: 0.0, neighbors: Vec::new() }
         })
         .collect();
     cosmos.radius = (reach + 16.0).max(120.0);
@@ -230,6 +235,17 @@ pub fn build(input: &Input) -> Cosmos {
         if cosmos.bodies[b as usize].neighbors.len() < 96 {
             cosmos.bodies[b as usize].neighbors.push(a);
         }
+    }
+    for (id, name) in &input.sub_names {
+        let mine: Vec<usize> = (0..n).filter(|&i| input.nodes[i].sub == *id).collect();
+        // Um corpo sozinho já tem o próprio nome na ficha: o do sistema só repetiria.
+        if mine.len() < 2 || name.is_empty() {
+            continue;
+        }
+        let sum = mine.iter().fold([0.0; 3], |acc, &i| add(acc, cosmos.bodies[i].pos));
+        let middle = mul(sum, 1.0 / mine.len() as f32);
+        let radius = mine.iter().map(|&i| len(sub(cosmos.bodies[i].pos, middle))).fold(0.0, f32::max) + size(0.3);
+        cosmos.systems.push(Cluster { name: name.clone(), theme: input.nodes[mine[0]].theme, center: middle, radius });
     }
     cosmos.lines = skeleton(input, &pos, [3, 2, 2][tier], &weight);
     cosmos
@@ -414,7 +430,7 @@ mod tests {
 
     fn sample(n: usize, themes: usize) -> Input {
         let mut r = rng(7);
-        let mut nodes: Vec<Node> = (0..n).map(|i| Node { theme: (i % themes) as u8, sub: 0, uses: r(), fresh: false, key: i as u64 * 131 + 1, note: i % 3 == 0 }).collect();
+        let mut nodes: Vec<Node> = (0..n).map(|i| Node { theme: (i % themes) as u8, sub: 0, uses: r(), fresh: false, key: i as u64 * 131 + 1, note: i % 3 == 0, hub: false }).collect();
         let mut links = vec![];
         for i in themes..n {
             // Quase tudo liga dentro do próprio tema; uma em cada nove cruza.
@@ -426,7 +442,7 @@ mod tests {
         }
         links.retain(|l| l.0 != l.1);
         assign_subs(&mut nodes, &links);
-        Input { nodes, weights: vec![], base_links: links.len(), links, fresh: vec![], themes: (0..themes).map(|t| format!("T{t}")).collect() }
+        Input { nodes, weights: vec![], sub_names: vec![], base_links: links.len(), links, fresh: vec![], themes: (0..themes).map(|t| format!("T{t}")).collect() }
     }
 
     #[test]
@@ -495,7 +511,7 @@ mod tests {
     #[test]
     fn skeleton_keeps_few_lines_but_every_linked_body_keeps_one() {
         // Trinta itens com a mesma tag: 435 ligações que dizem a mesma coisa.
-        let mut nodes: Vec<Node> = (0..30).map(|i| Node { theme: 0, sub: 0, uses: 0.2, fresh: false, key: i + 1, note: false }).collect();
+        let mut nodes: Vec<Node> = (0..30).map(|i| Node { theme: 0, sub: 0, uses: 0.2, fresh: false, key: i + 1, note: false, hub: false }).collect();
         let mut links = vec![];
         for a in 0..30u32 {
             for b in a + 1..30 {
@@ -503,7 +519,7 @@ mod tests {
             }
         }
         assign_subs(&mut nodes, &links);
-        let c = build(&Input { nodes, weights: vec![], base_links: links.len(), links, fresh: vec![], themes: vec!["A".into()] });
+        let c = build(&Input { nodes, weights: vec![], sub_names: vec![], base_links: links.len(), links, fresh: vec![], themes: vec!["A".into()] });
         assert!(c.lines.len() <= 90, "{} linhas", c.lines.len());
         let mut touched = [false; 30];
         for &(a, b) in &c.lines {
@@ -512,6 +528,30 @@ mod tests {
         }
         assert!(touched.iter().all(|t| *t));
         assert_eq!(c.bodies[0].neighbors.len(), 29, "o foco ainda mostra todas");
+    }
+
+    #[test]
+    fn a_named_subtheme_becomes_a_system_around_its_hub() {
+        let mut input = sample(120, 3);
+        // Vinte itens do tema 0 são o projeto "Vitrola", e o primeiro é a nota dele.
+        let mine: Vec<usize> = (0..120).filter(|i| i % 3 == 0).take(20).collect();
+        for &i in &mine {
+            input.nodes[i].sub = 9_000;
+        }
+        input.nodes[mine[0]].hub = true;
+        input.sub_names = vec![(9_000, "Vitrola".into()), (9_001, "Vazio".into())];
+        let c = build(&input);
+        assert_eq!(c.systems.len(), 1, "subtema sem corpos não vira sistema");
+        let system = &c.systems[0];
+        assert_eq!(system.name, "Vitrola");
+        for &i in &mine {
+            assert!(len(sub(c.bodies[i].pos, system.center)) <= system.radius, "corpo {i} fora do sistema");
+        }
+        // Os corpos do projeto ficam juntos: mais perto entre si que do resto do tema.
+        let others: Vec<usize> = (0..120).filter(|i| i % 3 == 0 && !mine.contains(i)).collect();
+        let spread = |set: &[usize]| set.iter().map(|&i| len(sub(c.bodies[i].pos, system.center))).sum::<f32>() / set.len() as f32;
+        assert!(spread(&mine) < spread(&others), "dentro {} fora {}", spread(&mine), spread(&others));
+        assert!(c.bodies[mine[0]].size > c.bodies[mine[1]].size * 1.2 || input.nodes[mine[1]].uses > input.nodes[mine[0]].uses);
     }
 
     #[test]

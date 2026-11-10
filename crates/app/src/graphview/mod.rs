@@ -56,6 +56,18 @@ pub enum Filter {
     Memories,
 }
 
+/// O que dá a cor no grafo.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ColorBy {
+    /// O grupo, a categoria acima do projeto. Dentro dele, cada projeto fica junto.
+    Group,
+    /// O projeto. Os maiores ganham cor, o resto vira "Outros".
+    Project,
+}
+
+/// Subtemas de projeto não colidem com os que vêm das ligações.
+const PROJECT_SUB: u32 = 1 << 20;
+
 impl Filter {
     fn keeps(self, kind: NodeKind) -> bool {
         match self {
@@ -109,6 +121,7 @@ struct Drag {
 pub struct GraphView {
     pub form: Form,
     pub filter: Filter,
+    pub color_by: ColorBy,
     graph: Arc<Graph>,
     /// Fora da tela não há por que montar geometria: fica marcado e monta ao voltar.
     pub visible: bool,
@@ -168,6 +181,7 @@ impl GraphView {
         Self {
             form: Form::Bundles,
             filter: Filter::All,
+            color_by: ColorBy::Group,
             graph: Arc::new(Graph::default()),
             visible: true,
             known: FxHashSet::default(),
@@ -257,6 +271,13 @@ impl GraphView {
         }
     }
 
+    pub fn set_color_by(&mut self, by: ColorBy) {
+        if self.color_by != by {
+            self.color_by = by;
+            self.replay();
+        }
+    }
+
     pub fn set_filter(&mut self, filter: Filter) {
         if self.filter != filter {
             self.filter = filter;
@@ -286,6 +307,11 @@ impl GraphView {
         self.fx_dirty = true;
         self.dirty = true;
         self.rebuild_arcs();
+    }
+
+    /// Quantas leituras da IA estão acesas agora, em qualquer das três formas.
+    pub fn reads_shown(&self) -> usize {
+        if self.universe.active() { self.universe.reads_shown() } else { self.pulses.iter().filter(|p| self.clock - p.start < PULSE_LIFE).count() }
     }
 
     /// Quantos arcos soltos existem agora: percursos de leitura e ligações do foco.
@@ -356,6 +382,7 @@ impl GraphView {
         let g = self.graph.clone();
         let filter = self.filter;
         let form = self.form;
+        let color_by = self.color_by;
         self.ticket += 1;
         self.pending = true;
         let ticket = self.ticket;
@@ -363,7 +390,7 @@ impl GraphView {
         std::thread::Builder::new()
             .name("graph".into())
             .spawn(move || {
-                let (input, nodes) = input_of(&g, filter, &fresh_nodes);
+                let (input, nodes) = input_of(&g, filter, color_by, &fresh_nodes);
                 let cosmos = (form == Form::Universe).then(|| graph::cosmos::build(&input));
                 let scene = graph::build(form, &input);
                 let _ = tx.send(Built { ticket, scene, cosmos, fresh: input.fresh.clone(), nodes, links: input.links.len(), themes: input.themes, graph: g });
@@ -609,9 +636,13 @@ impl GraphView {
         // Com zoom, o nome de um tema pode cair fora do quadro: não invade o resto da tela.
         ui.s.push_clip(r);
         for l in &scene.labels {
-            let st = ui_style(12.0).weight(500).color(THEME.sub.alpha(self.labels_alpha));
+            let st = if l.minor { ui_style(11.0).color(THEME.mute.alpha(self.labels_alpha)) } else { ui_style(12.0).weight(500).color(THEME.sub.alpha(self.labels_alpha)) };
             let lay = ui.line(&l.text, st);
-            let (x, y) = (cx + l.x * s - lay.width * l.anchor, cy + l.y * s - lay.height * 0.5);
+            let (mut x, y) = (cx + l.x * s - lay.width * l.anchor, cy + l.y * s - lay.height * 0.5);
+            // Com o desenho inteiro à vista, nome comprido de tema encosta na borda em vez de ser cortado.
+            if self.zoom <= 1.001 {
+                x = x.clamp(r.x + 8.0, (r.right() - 8.0 - lay.width).max(r.x + 8.0));
+            }
             for (dx, dy) in [(-1.0, 0.0), (1.0, 0.0), (0.0, -1.0), (0.0, 1.0)] {
                 ui.s.text_tinted(ui.t, &lay, x + dx, y + dy, Some(THEME.bg), 0.9 * self.labels_alpha);
             }
@@ -821,32 +852,48 @@ impl Default for GraphView {
     }
 }
 
-/// Fatia de cor de cada região, as maiores primeiro. Da oitava em diante vira "Outros".
+/// Fatia de cor de cada grupo, os maiores primeiro. Do oitavo em diante vira "Outros".
 pub fn theme_slots(g: &Graph) -> (Vec<u8>, Vec<String>) {
-    let mut size = vec![0usize; g.regions.len()];
-    for n in &g.nodes {
-        if let Some(c) = size.get_mut(n.region as usize) {
-            *c += 1;
+    let of: Vec<u32> = g.nodes.iter().map(|n| n.region).collect();
+    slots_of(&of, &g.regions)
+}
+
+/// Fatias de cor para uma categoria qualquer: `of` diz a de cada nó, `names` o nome de cada uma.
+fn slots_of(of: &[u32], names: &[String]) -> (Vec<u8>, Vec<String>) {
+    let mut size = vec![0usize; names.len()];
+    for &c in of {
+        if let Some(n) = size.get_mut(c as usize) {
+            *n += 1;
         }
     }
-    let mut ranked: Vec<usize> = (0..size.len()).collect();
-    ranked.sort_by(|&a, &b| size[b].cmp(&size[a]).then(g.regions[a].cmp(&g.regions[b])));
+    let mut ranked: Vec<usize> = (0..size.len()).filter(|&i| size[i] > 0).collect();
+    ranked.sort_by(|&a, &b| size[b].cmp(&size[a]).then(names[a].cmp(&names[b])));
     let overflow = ranked.len() > SLOTS;
     let mut slot = vec![(SLOTS - 1) as u8; size.len()];
     let named = if overflow { SLOTS - 1 } else { ranked.len() };
     for (i, &r) in ranked.iter().take(named).enumerate() {
         slot[r] = i as u8;
     }
-    let mut names: Vec<String> = ranked.iter().take(named).map(|&r| g.regions[r].clone()).collect();
+    let mut out: Vec<String> = ranked.iter().take(named).map(|&r| names[r].clone()).collect();
     if overflow {
-        names.push("Outros".into());
+        out.push("Outros".into());
     }
-    (slot, names)
+    (slot, out)
 }
 
 /// Monta a entrada da geometria: filtro, fatias de tema e quem é novo.
-fn input_of(g: &Graph, filter: Filter, fresh_nodes: &[u32]) -> (Input, Vec<u32>) {
-    let (slot, themes) = theme_slots(g);
+fn input_of(g: &Graph, filter: Filter, color_by: ColorBy, fresh_nodes: &[u32]) -> (Input, Vec<u32>) {
+    // Por projeto, quem não tem projeto forma a sua própria fatia.
+    let mut project_names = g.projects.clone();
+    project_names.push("Sem projeto".into());
+    let none = project_names.len() as u32 - 1;
+    let by_project: Vec<u32> = g.nodes.iter().map(|n| if n.project == u32::MAX { none } else { n.project }).collect();
+    let by_group: Vec<u32> = g.nodes.iter().map(|n| n.region).collect();
+    let (slot, themes) = match color_by {
+        ColorBy::Group => slots_of(&by_group, &g.regions),
+        ColorBy::Project => slots_of(&by_project, &project_names),
+    };
+    let category = if color_by == ColorBy::Group { &by_group } else { &by_project };
     let max_w = g.nodes.iter().map(|n| n.weight).fold(1.0f32, f32::max);
     let is_fresh: FxHashSet<u32> = fresh_nodes.iter().copied().collect();
     let mut nodes = vec![];
@@ -858,8 +905,8 @@ fn input_of(g: &Graph, filter: Filter, fresh_nodes: &[u32]) -> (Input, Vec<u32>)
         }
         map[i] = nodes.len() as u32;
         back.push(i as u32);
-        let theme = slot.get(n.region as usize).copied().unwrap_or((SLOTS - 1) as u8);
-        nodes.push(Node { theme, sub: 0, uses: (n.weight / max_w).clamp(0.0, 1.0).sqrt(), fresh: is_fresh.contains(&(i as u32)), key: key_of(&n.id), note: matches!(n.kind, NodeKind::Note) });
+        let theme = slot.get(category[i] as usize).copied().unwrap_or((SLOTS - 1) as u8);
+        nodes.push(Node { theme, sub: 0, uses: (n.weight / max_w).clamp(0.0, 1.0).sqrt(), fresh: is_fresh.contains(&(i as u32)), key: key_of(&n.id), note: matches!(n.kind, NodeKind::Note), hub: n.hub });
     }
     let mut seen: FxHashSet<(u32, u32)> = FxHashSet::default();
     let (mut old, mut new) = (vec![], vec![]);
@@ -879,6 +926,21 @@ fn input_of(g: &Graph, filter: Filter, fresh_nodes: &[u32]) -> (Input, Vec<u32>)
     let weights: Vec<f32> = old.iter().map(|l| l.2).collect();
     let old: Vec<(u32, u32)> = old.iter().map(|l| (l.0, l.1)).collect();
     assign_subs(&mut nodes, &old);
+    // Com a cor no grupo, o subtema é o projeto: os itens de um projeto ficam juntos dentro do grupo.
+    let mut sub_names = Vec::new();
+    if color_by == ColorBy::Group {
+        let mut seen: FxHashSet<u32> = FxHashSet::default();
+        for (k, &i) in back.iter().enumerate() {
+            let p = g.nodes[i as usize].project;
+            if p == u32::MAX {
+                continue;
+            }
+            nodes[k].sub = PROJECT_SUB + p;
+            if seen.insert(p) {
+                sub_names.push((PROJECT_SUB + p, g.projects.get(p as usize).cloned().unwrap_or_default()));
+            }
+        }
+    }
     let fresh: Vec<u32> = fresh_nodes.iter().filter_map(|&n| Some(map[n as usize]).filter(|&m| m != u32::MAX)).collect();
-    (Input { nodes, links: old, weights, base_links, fresh, themes }, back)
+    (Input { nodes, links: old, weights, base_links, fresh, themes, sub_names }, back)
 }

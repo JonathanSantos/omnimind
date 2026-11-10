@@ -385,7 +385,7 @@ pub fn build(input: &Input) -> Scene {
         let a = (sector[g as usize].0 + sector[g as usize].1) * 0.5;
         let c = a.cos();
         if let Some(name) = input.themes.get(g as usize) {
-            scene.labels.push(Label { text: name.clone(), x: c * (RX + 22.0), y: CY + a.sin() * (RY + 24.0), anchor: if c > 0.3 { 0.0 } else if c < -0.3 { 1.0 } else { 0.5 } });
+            scene.labels.push(Label { text: name.clone(), x: c * (RX + 22.0), y: CY + a.sin() * (RY + 24.0), anchor: if c > 0.3 { 0.0 } else if c < -0.3 { 1.0 } else { 0.5 }, minor: false });
         }
     }
     scene.vertices = mesh.vertices;

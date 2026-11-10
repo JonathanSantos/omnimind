@@ -34,7 +34,7 @@ pub fn model() -> Model {
         for (i, t) in titles.iter().enumerate() {
             let path = format!("notes/{}/{}.md", region.to_lowercase().replace(' ', "-"), t.to_lowercase().replace(' ', "-"));
             let idx = g.nodes.len() as u32;
-            g.nodes.push(GraphNode { id: path.clone(), kind: NodeKind::Note, title: t.to_string(), weight: (r.f() * 6.0).floor(), region: ri as u32 });
+            g.nodes.push(GraphNode { id: path.clone(), kind: NodeKind::Note, title: t.to_string(), weight: (r.f() * 6.0).floor(), region: ri as u32, project: u32::MAX, hub: false });
             m.notes.push(Note { path: path.clone(), modified: "Hoje".into(), title: t.to_string(), folder: region.to_string(), bytes: 2048, covered: r.f() > 0.2, memories: 0, aliases: vec![] });
             if i > 0 {
                 let j = first + (r.f() * i as f32) as u32;
@@ -53,7 +53,7 @@ pub fn model() -> Model {
                     MemKind::Preference => format!("Prefere {}", t.to_lowercase()),
                 };
                 let n = g.nodes.len() as u32;
-                g.nodes.push(GraphNode { id: id.clone(), kind: NodeKind::Memory(kind), title: title.clone(), weight: (r.f() * 8.0).floor(), region: ri as u32 });
+                g.nodes.push(GraphNode { id: id.clone(), kind: NodeKind::Memory(kind), title: title.clone(), weight: (r.f() * 8.0).floor(), region: ri as u32, project: u32::MAX, hub: false });
                 g.edges.push((n, idx, 1.0));
                 m.memories.push(Memory {
                     hash: String::new(),
@@ -73,6 +73,7 @@ pub fn model() -> Model {
                     tags: vec![format!("project/{}", region.to_lowercase())],
                     uses: (r.f() * 9.0) as u32,
                     held: None,
+                    project: None,
                 });
             }
         }

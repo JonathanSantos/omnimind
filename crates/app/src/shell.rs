@@ -1,7 +1,7 @@
 //! A casca do app: barra lateral, páginas, painel de detalhe e boas-vindas.
 
 use crate::command::{Cmd, Msg};
-use crate::graphview::{Filter, GraphView};
+use crate::graphview::{ColorBy, Filter, GraphView};
 use crate::input::{Event, Key};
 use crate::model::{Graph, GraphNode, Live, MemKind, MemState, Memory, Model, NodeKind, Snapshot};
 use crate::theme::{self, mono, ui as ui_style, THEME};
@@ -10,7 +10,7 @@ use crate::views::activity::ActivityView;
 use crate::views::memories::{self, MemoriesView};
 use crate::views::metrics::MetricsView;
 use crate::views::notes::NotesView;
-use crate::views::palette::{Action, Palette, Picked, Prompt};
+use crate::views::palette::{Action, Choice, ChoiceKind, ChoiceOption, Palette, Picked, Prompt};
 use crate::views::profile::ProfileView;
 use crate::views::settings::SettingsView;
 use crate::Clipboard;
@@ -388,6 +388,16 @@ impl App {
                     }
                 }
             }
+            Picked::Chosen(kind, value) => {
+                let _ = self.tx.send(match kind {
+                    ChoiceKind::MemoryProject { id, hash } => Cmd::SetProject { id, hash, project: value },
+                    ChoiceKind::MoveProject { from } => Cmd::MoveProject { from, to: value },
+                    ChoiceKind::ProjectGroup { slug } => match value {
+                        Some(group) => Cmd::CreateProject { slug, group },
+                        None => return,
+                    },
+                });
+            }
             Picked::Hit(h) => {
                 if h.is_note {
                     self.notes.request_open(&h.id, &self.tx);
@@ -427,6 +437,31 @@ impl App {
             }
             Action::Help => self.help = !self.help,
         }
+    }
+
+    /// Para onde uma memória pode ir: geral, ou qualquer projeto do cofre menos o atual.
+    fn project_options(&self, skip: Option<&str>) -> Vec<ChoiceOption> {
+        let mut list = vec![ChoiceOption { label: "Geral".into(), detail: "vale em todo projeto".into(), value: None }];
+        let mut known: Vec<&crate::model::ProjectInfo> = self.model.projects.iter().filter(|p| Some(p.slug.as_str()) != skip && !p.ephemeral).collect();
+        known.sort_by(|a, b| a.note.is_none().cmp(&b.note.is_none()).then(a.title.to_lowercase().cmp(&b.title.to_lowercase())));
+        list.extend(known.into_iter().map(|p| ChoiceOption { label: p.title.clone(), detail: if p.note.is_some() { p.group.clone() } else { "sem nota".into() }, value: Some(p.slug.clone()) }));
+        list
+    }
+
+    /// Grupos que as notas de projeto já usam, os mais cheios primeiro.
+    fn group_options(&self) -> Vec<ChoiceOption> {
+        let mut count: Vec<(String, usize)> = Vec::new();
+        for p in self.model.projects.iter().filter(|p| !p.group.is_empty()) {
+            match count.iter_mut().find(|c| c.0 == p.group) {
+                Some(c) => c.1 += 1,
+                None => count.push((p.group.clone(), 1)),
+            }
+        }
+        count.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+        if count.is_empty() {
+            count.push(("Projetos".into(), 0));
+        }
+        count.into_iter().map(|(g, n)| ChoiceOption { detail: if n == 1 { "1 projeto".into() } else { format!("{n} projetos") }, value: Some(g.clone()), label: g }).collect()
     }
 
     fn toggle_theme(&mut self) {
@@ -572,6 +607,14 @@ impl App {
                 if o.open_vault {
                     self.run_action(Action::OpenBrain);
                 }
+                if let Some(slug) = o.create_project {
+                    let options = self.group_options();
+                    self.palette.choose(Choice { kind: ChoiceKind::ProjectGroup { slug }, label: "Grupo do projeto: escolha ou digite um novo", options, free_text: true });
+                }
+                if let Some(from) = o.move_project {
+                    let options = self.project_options(Some(&from));
+                    self.palette.choose(Choice { kind: ChoiceKind::MoveProject { from }, label: "Levar as memórias para", options, free_text: false });
+                }
             }
         }
     }
@@ -594,6 +637,17 @@ impl App {
                 self.detail = None;
                 self.graph.selected = None;
                 self.graph.set_filter(filter);
+            }
+            x += w + 2.0;
+        }
+        x += 14.0;
+        // O que dá a cor: o grupo, com cada projeto junto dentro dele, ou o projeto direto.
+        for (by, label) in [(ColorBy::Group, "Grupo"), (ColorBy::Project, "Projeto")] {
+            let (fired, w) = ui.chip(id(("graph-color", label)), x, r.y + 14.0, label, self.graph.color_by == by);
+            if fired {
+                self.detail = None;
+                self.graph.selected = None;
+                self.graph.set_color_by(by);
             }
             x += w + 2.0;
         }
@@ -711,8 +765,10 @@ impl App {
         on.sort_unstable();
         on.dedup();
         let on_links = on.len();
+        let global = !self.model.global_links.is_empty();
         let status = match (&self.live, active) {
             (Some(l), true) => l.0.clone(),
+            _ if global => "Ligado em todos os projetos".to_string(),
             _ => match on_links {
                 0 => "Nenhum projeto ligado".to_string(),
                 1 => "Ligado em 1 projeto".to_string(),
@@ -720,7 +776,7 @@ impl App {
             },
         };
         let pulse = if active { 0.6 + 0.4 * (self.time * 5.0).sin() } else { 1.0 };
-        let dot = if active || on_links > 0 { THEME.acc.alpha(pulse) } else { THEME.mute };
+        let dot = if active || on_links > 0 || global { THEME.acc.alpha(pulse) } else { THEME.mute };
         ui.s.round(Rect::new(x + 10.0, foot + 15.0, 7.0, 7.0), 3.5, dot);
         let st = ui_style(12.5).color(THEME.sub);
         let t = ui.ellipsize(&status, st, w - 34.0);
@@ -815,6 +871,17 @@ impl App {
         for (k, v) in fields {
             ui.text(k, ui_style(13.5).color(THEME.mute), x, y);
             y += ui.para(&v, ui_style(13.5), x + 96.0, y, w - 96.0).max(20.0) + 6.0;
+        }
+        // De que projeto é: só a pessoa muda, e "geral" faz a memória valer em todo lugar.
+        ui.text("Projeto", ui_style(13.5).color(THEME.mute), x, y);
+        let project = mem.project.as_deref().map(|p| m.projects.iter().find(|i| i.slug == p).map_or(p.to_string(), |i| i.title.clone()));
+        let shown = project.clone().unwrap_or_else(|| "Geral, vale em todo projeto".into());
+        let (change, lw) = ui.link(id(("detail-project", &mem.id)), x + w - 44.0, y, "Mudar", ui_style(13.5).color(THEME.acc));
+        let _ = lw;
+        y += ui.para(&shown, ui_style(13.5), x + 96.0, y, w - 96.0 - 56.0).max(20.0) + 6.0;
+        if change {
+            let options = self.project_options(mem.project.as_deref());
+            self.palette.choose(Choice { kind: ChoiceKind::MemoryProject { id: mem.id.clone(), hash: mem.hash.clone() }, label: "Projeto desta memória", options, free_text: false });
         }
         if !mem.quote.is_empty() {
             y += 8.0;
@@ -919,7 +986,7 @@ fn demo_graph() -> Graph {
     let mut nodes = Vec::new();
     for i in 0..300u32 {
         let kind = if i % 3 == 0 { NodeKind::Note } else { NodeKind::Memory(MemKind::Decision) };
-        nodes.push(GraphNode { id: format!("d{i}"), kind, title: String::new(), weight: (i % 7) as f32, region: i % 7 });
+        nodes.push(GraphNode { id: format!("d{i}"), kind, title: String::new(), weight: (i % 7) as f32, region: i % 7, project: u32::MAX, hub: false });
     }
-    Graph { nodes, edges: vec![], regions: ["1", "2", "3", "4", "5", "6", "7"].map(|_| String::new()).to_vec() }
+    Graph { nodes, edges: vec![], regions: ["1", "2", "3", "4", "5", "6", "7"].map(|_| String::new()).to_vec(), projects: vec![] }
 }

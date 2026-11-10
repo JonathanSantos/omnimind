@@ -12,9 +12,9 @@ use std::time::{Duration, Instant};
 fn model(n: usize, links: usize) -> Model {
     let mut r = rng(0x2545F4914F6CDD1D);
     let regions: Vec<String> = ["Rota Certa", "Arquitetura", "Pessoal", "Clientes", "Leituras", "Saúde", "Marca"].map(String::from).to_vec();
-    let nodes = (0..n).map(|i| GraphNode { id: format!("n{i}"), kind: if i % 4 == 0 { NodeKind::Note } else { NodeKind::Memory(MemKind::Decision) }, title: format!("Item {i}"), weight: (r() * r() * 9.0).floor(), region: (r() * r() * 7.0) as u32 }).collect();
+    let nodes = (0..n).map(|i| GraphNode { id: format!("n{i}"), kind: if i % 4 == 0 { NodeKind::Note } else { NodeKind::Memory(MemKind::Decision) }, title: format!("Item {i}"), weight: (r() * r() * 9.0).floor(), region: (r() * r() * 7.0) as u32, project: u32::MAX, hub: false }).collect();
     let edges = (0..links).map(|_| ((r() * n as f32) as u32, (r() * r() * n as f32) as u32, 1.0)).filter(|e| e.0 != e.1).collect();
-    Model { graph: Graph { nodes, edges, regions }, generation: n as u64, ..Default::default() }
+    Model { graph: Graph { nodes, edges, regions, projects: vec![] }, generation: n as u64, ..Default::default() }
 }
 
 fn main() {

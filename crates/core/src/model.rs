@@ -528,6 +528,12 @@ pub enum Change {
         base_hash: Option<String>,
         text: String,
     },
+    /// Muda o projeto de uma memória, ou a torna geral com `None`. Só `Actor::person`.
+    SetProject {
+        id: String,
+        base_hash: Option<String>,
+        project: Option<String>,
+    },
     /// Funde `from` em `into`, somando aliases e marcando `supersedes`.
     Merge {
         into: String,

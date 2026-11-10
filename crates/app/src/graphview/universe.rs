@@ -147,6 +147,10 @@ impl Universe {
         self.dirty = true;
     }
 
+    pub fn reads_shown(&self) -> usize {
+        self.reads.iter().filter(|r| self.clock - r.start < READ_LIFE).count()
+    }
+
     fn opening(&self, c: &Cosmos) -> Option<f32> {
         self.open_at.map(|at| self.clock - at).filter(|age| *age < c.open_seconds)
     }
@@ -329,6 +333,21 @@ impl Universe {
             // Um aglomerado na frente de outro confunde de quem é o nome: o ponto leva a cor do tema.
             let dot = THEME.themes[(cl.theme as usize).min(THEME.themes.len() - 1)];
             ui.s.round(Rect::new(x - 13.0, y + lay.height * 0.5 - 3.5, 7.0, 7.0), 3.5, dot.alpha(a));
+        }
+        // Projetos: um nome menor em cada sistema. Com muitos, só de perto cabem sem se atropelar.
+        let close = self.framed_for > 0.0 && self.cam.dist < Camera::fit(self.framed_for, r.w, r.h) * 0.75;
+        if c.systems.len() <= 24 || close {
+            for sys in &c.systems {
+                let Some(s) = basis.see(mul(sys.center, spread), r.h) else { continue };
+                let depth = ((s.depth - near) / (far - near).max(1.0)).clamp(0.0, 1.0);
+                let a = self.labels_alpha * (0.85 - 0.5 * depth) * (1.0 - 0.45 * smooth(self.focus_amt));
+                let lay = ui.line(&sys.name, ui_style(11.0).color(THEME.mute.alpha(a)));
+                let (x, y) = (cx + s.x - lay.width * 0.5, cy + s.y + sys.radius * spread * s.scale + 4.0);
+                for (dx, dy) in [(-1.0, 0.0), (1.0, 0.0), (0.0, -1.0), (0.0, 1.0)] {
+                    ui.s.text_tinted(ui.t, &lay, x + dx, y + dy, Some(THEME.bg), 0.9 * a);
+                }
+                ui.draw(&lay, x, y);
+            }
         }
         ui.s.pop_clip();
     }

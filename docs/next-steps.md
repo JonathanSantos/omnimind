@@ -48,6 +48,15 @@ Veja `decisions/0007-universe-platforms-and-follow-up-frame.md`. Falta:
 4. Ícone no executável de Windows e leitura da preferência de reduzir movimento fora do macOS.
 5. Zoom, arrasto e pinça de Feixes e Raízes na janela real; ver `decisions/0008-graph-zoom-rings-and-reading-path.md`.
 
+## Projetos
+
+Veja `decisions/0009-project-is-a-note.md`. Falta:
+
+1. A pessoa decidir a migração do cofre real: `omnimind projects --brain ~/Omnimind` mostra, `--apply` aplica.
+2. Registrar os projetos sem nota, em Ajustes.
+3. Separar os projetos dentro do grupo também em Raízes.
+4. Podar os eventos de ferramenta antigos do diário, se o tamanho virar problema.
+
 ## Decisões pendentes da pessoa
 
 1. **Fontes.** O protótipo aprovado usou Hanken Grotesk e IBM Plex Mono. O app segue com Familjen Grotesk e Sometype Mono, porque a troca exige baixar fontes. Falta aprovar o download.

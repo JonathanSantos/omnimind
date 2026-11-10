@@ -195,6 +195,13 @@ impl ApplicationHandler<UserEvent> for Runner {
         let (tx, rx) = self.boot.take().expect("boot");
         let text = TextEngine::new(FONTS, scale).with_system_fallback();
         let mut app = App::new(&gpu, config.width, config.height, scale, text, tx, rx, Clipboard::system());
+        // `--form roots|universe`: abre o grafo já nessa forma. Serve para demonstrar e conferir.
+        let args: Vec<String> = std::env::args().collect();
+        match args.iter().position(|a| a == "--form").and_then(|i| args.get(i + 1)).map(String::as_str) {
+            Some("roots") => app.graph.form = graph::Form::Roots,
+            Some("universe") => app.graph.form = graph::Form::Universe,
+            _ => {}
+        }
         app.pump();
         app.system_theme(window.theme() == Some(WTheme::Dark));
         platform::hook_terminate(request_quit);

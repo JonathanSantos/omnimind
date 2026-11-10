@@ -282,6 +282,11 @@ impl Brain {
                 base_hash,
                 text,
             } => self.correct_line(&mut st, &id, base_hash, &text, &actor),
+            Change::SetProject {
+                id,
+                base_hash,
+                project,
+            } => self.set_project(&mut st, &id, base_hash, project, &actor),
             Change::Merge {
                 into,
                 from,
@@ -406,23 +411,39 @@ impl Brain {
                 }
             }
         }
-        if let Some(cwd) = actor.cwd.as_deref() {
-            let project = crate::brain::project_from_cwd(cwd);
-            let mem_type = d
-                .mem_type
-                .or_else(|| d.id.as_ref().and_then(|i| st.mems.get(i)).map(|r| r.memory.mem_type));
+        let projects = st.projects();
+        let mem_type = d
+            .mem_type
+            .or_else(|| d.id.as_ref().and_then(|i| st.mems.get(i)).map(|r| r.memory.mem_type));
+        let said = fold(&format!(
+            "{} {} {}",
+            d.title,
+            d.summary,
+            d.quote.as_deref().unwrap_or("")
+        ));
+        let names = |p: &str| said.contains(p) || said.contains(&p.replace('-', " "));
+        // Uma memória tem no máximo um projeto. Quem decide, nesta ordem: a nota de onde ela veio,
+        // a tag que já veio escrita e aponta para um projeto com nota, e só então a pasta da sessão.
+        let from_note = d.note.as_deref().and_then(|n| projects.of_note(n)).map(|p| p.slug.clone());
+        let explicit: Vec<String> = tag_list.iter().filter_map(|t| t.strip_prefix("project/").map(str::to_string)).collect();
+        let from_tag = explicit.iter().find(|t| projects.get(t).is_some()).map(|t| projects.canon(t));
+        let from_place = actor.cwd.as_deref().and_then(|cwd| match projects.place(cwd) {
             // Preferência é da pessoa, não da pasta: só fica no projeto se o texto o citar.
-            let said = fold(&format!(
-                "{} {} {}",
-                d.title,
-                d.summary,
-                d.quote.as_deref().unwrap_or("")
-            ));
-            let named = said.contains(&project) || said.contains(&project.replace('-', " "));
-            let p = format!("project/{project}");
-            if (mem_type != Some(MemoryType::Preference) || named) && !tag_list.contains(&p) {
-                tag_list.push(p);
+            crate::projects::Place::Project(p) | crate::projects::Place::Unregistered(p) => {
+                (mem_type != Some(MemoryType::Preference) || names(&p)).then_some(p)
             }
+            // Pasta descartável não é projeto. O título pode nomear um; regra e preferência ficam gerais;
+            // o resto guarda o nome da pasta, para não valer em todo lugar até a pessoa decidir.
+            crate::projects::Place::Ephemeral(p) => projects.named_in_title(&d.title).map(|x| x.slug.clone()).or_else(|| {
+                (!matches!(mem_type, Some(MemoryType::Preference | MemoryType::Procedure))).then_some(p)
+            }),
+        });
+        let chosen = from_note.or(from_tag).or(from_place).or_else(|| explicit.first().cloned());
+        // O projeto fica no lugar em que a tag veio escrita; sem tag escrita, vai para o fim.
+        let at = tag_list.iter().position(|t| t.starts_with("project/"));
+        tag_list.retain(|t| !t.starts_with("project/"));
+        if let Some(p) = chosen {
+            tag_list.insert(at.unwrap_or(tag_list.len()).min(tag_list.len()), format!("project/{p}"));
         }
         Prepared {
             title: collapse(&clean(&d.title)),
@@ -1032,6 +1053,9 @@ impl Brain {
                 "conflict with {c}: stored, and the agenda lists it"
             ));
         }
+        if inspect::bare_title(&memory.title) {
+            warnings.push("title is a reply and does not stand alone: stored, but rewrite it naming the subject, or the agenda will list it".to_string());
+        }
         for c in &near_dups {
             warnings.push(format!(
                 "close to {c}: stored apart, and the agenda lists it"
@@ -1515,6 +1539,57 @@ impl Brain {
             ..Default::default()
         };
         self.apply_write(st, draft, actor)
+    }
+
+    /// A pessoa diz de que projeto é uma memória. `None` a torna geral: vale em todo projeto.
+    fn set_project(
+        &self,
+        st: &mut State,
+        id: &str,
+        base_hash: Option<String>,
+        project: Option<String>,
+        actor: &Actor,
+    ) -> Result<Applied> {
+        if actor.kind != ActorKind::Person {
+            return self.reject(
+                st,
+                rejected(
+                    "project_requires_person",
+                    "Only the person moves a memory between projects, from the app or the CLI.",
+                    "project",
+                ),
+                actor,
+            );
+        }
+        let (before, h) = match self.cas(st, id, base_hash.as_deref())? {
+            Ok(x) => x,
+            Err(r) => return self.reject(st, r, actor),
+        };
+        let want = project.map(|p| st.projects().canon(&p)).filter(|p| !p.is_empty());
+        let rec = &st.mems[id];
+        let mut m = rec.memory.clone();
+        let rel = rec.path.clone();
+        if tags::project_of(&m.tags).map(str::to_string) == want && m.tags.iter().filter(|t| t.starts_with("project/")).count() <= 1 {
+            let mut a = base(Outcome::Unchanged, id, "project");
+            a.hash = Some(h);
+            return Ok(a);
+        }
+        m.tags.retain(|t| !t.starts_with("project/"));
+        let reason = match &want {
+            Some(p) => {
+                m.tags.push(format!("project/{p}"));
+                format!("moved to project {p}")
+            }
+            None => "made general".to_string(),
+        };
+        m.updated = util::now_ts_seconds();
+        let text = render_memory(&m);
+        let event = self.commit(st, &rel, id, Some((before, h)), &text, EventKind::Wrote, "project", Some(&reason), None, None, actor)?;
+        st.view.catch_up(self.root());
+        let mut a = base(Outcome::Written, id, "project");
+        a.event = Some(event);
+        a.hash = st.mems.get(id).map(|r| r.hash.clone());
+        Ok(a)
     }
 
     fn merge(
