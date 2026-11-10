@@ -1,0 +1,9 @@
+{"arm": "A", "session": "s1-http", "cost": 0.0313, "checks": {"sync_http": false}, "error": null}
+{"arm": "A", "session": "s2-correct-http", "cost": 0.0192, "checks": {}, "error": null}
+{"arm": "A", "session": "s3-deploy", "cost": 0.018, "checks": {"deploy": false}, "error": null}
+{"arm": "A", "session": "s4-correct-deploy", "cost": 0.0288, "checks": {}, "error": null}
+{"arm": "A", "session": "s5-http2", "cost": 0.0115, "checks": {"sync_http": true}, "error": null}
+{"arm": "A", "session": "s6-deploy2", "cost": 0.015, "checks": {"deploy": true}, "error": null}
+{"arm": "A", "session": "s7-commit", "cost": 0.012, "checks": {"commit": true}, "error": null}
+{"arm": "A", "session": "s8-all", "cost": 0.0145, "checks": {"sync_http": false, "deploy": true}, "error": null}
+spent 0.15

@@ -1,0 +1,50 @@
+# A cada push e pull request: compila nos três sistemas e roda os testes que não pedem GPU.
+name: ci
+
+on:
+  push:
+    branches: [redesign-omnimind, main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-22.04, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build app and CLI
+        run: cargo build -p app --bin omnimind-app -p omnimind-cli --bin omnimind
+      - name: Test geometry and editor
+        run: cargo test -p graph -p ed
+      # Núcleo e CLI dependem de permissões e symlinks do Unix: no Windows ainda só compilam.
+      - name: Test core and CLI
+        if: runner.os != 'Windows'
+        run: cargo test -p omnimind-core -p omnimind-cli
+      - name: Check core and CLI tests compile
+        if: runner.os == 'Windows'
+        run: cargo test -p omnimind-core -p omnimind-cli --no-run
+
+  # Os testes da interface desenham de verdade. A GPU do runner não é garantida:
+  # este job informa, mas não bloqueia.
+  interface:
+    name: interface (macOS, GPU)
+    runs-on: macos-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test -p app

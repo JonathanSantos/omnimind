@@ -1,0 +1,14 @@
+[package]
+name = "omnimind-cli"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Binário omnimind: CLI, servidor MCP stdio e hooks."
+
+[[bin]]
+name = "omnimind"
+path = "src/main.rs"
+
+[dependencies]
+omnimind-core = { path = "../core" }
+serde_json = "=1.0.145"

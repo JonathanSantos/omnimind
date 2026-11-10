@@ -1,0 +1,161 @@
+{
+ "spent": 0.17945020000000003,
+ "rows": [
+  {
+   "arm": "A",
+   "session": "s1-http",
+   "cost": 0.014,
+   "turns": 2,
+   "checks": {
+    "sync_http": false
+   },
+   "answer": "Não encontrei nada sobre o Cuscuz na memória, então usei `reqwest`, que é a escolha comum.\n\n```rust\nuse reqwest::Error;\n\npub async fn baixar(url: &str) -> Result<String, Error> {\n    reqwest::get(url).await?.error_for_status()?.text().await\n}\n```\n\nDependências no `Cargo.toml`:\n\n```toml\nreqwest = \"0.12\"\ntokio = { version = \"1\", features = [\"full\"] }\n```\n\nSe precisar dos bytes brutos, como em binários, troque `.text()` por `.bytes()`.",
+   "error": null
+  },
+  {
+   "arm": "A",
+   "session": "s2-correct-http",
+   "cost": 0.0195,
+   "turns": 3,
+   "checks": {},
+   "answer": "Anotado. No Cuscuz tudo é síncrono: sem tokio e sem async, e o HTTP usa o crate `ureq`. Vou seguir isso em todo código do Cuscuz.",
+   "error": null
+  },
+  {
+   "arm": "A",
+   "session": "s3-deploy",
+   "cost": 0.016,
+   "turns": 3,
+   "checks": {
+    "deploy": false
+   },
+   "answer": "Não sei como se faz o deploy da Rota Certa. Procurei no Várzea, em português e em inglês, e não achei nada sobre o projeto. A memória só tem uma entrada, que é sobre o Cuscuz. Também não vi nada da Rota Certa neste repositório (rival-second-brain).\n\nPosso ajudar de dois jeitos:\n- Se o código ou a documentação da Rota Certa estiver em outro diretório, me diga o caminho. Eu leio os scripts, o CI e o README e monto o passo a passo.\n- Se você já sabe o procedimento (plataforma, comandos, variáveis de ambiente), me conte. Eu guardo no Várzea como procedimento, e você não precisa explicar de novo.\n\n",
+   "error": null
+  },
+  {
+   "arm": "A",
+   "session": "s4-correct-deploy",
+   "cost": 0.0283,
+   "turns": 4,
+   "checks": {},
+   "answer": "Anotei os dois pontos sobre a Rota Certa:\n\n- **Deploy:** sempre em duas etapas. Primeiro a migração do banco, depois a aplicação, nunca direto. [mem:01M6A8GM7TTWYWP5A7079SZX2J]\n- **Commits:** o formato é `tipo(escopo): resumo`, escrito em português. [mem:01M6A8GNTAW1EBWMJ6GJE38WW8]\n\nAs duas memórias saíram com a tag `project/cuscuz`, que não pedi. Não corrigi, porque a tool não me deixou editar tags depois de gravar.",
+   "error": null
+  },
+  {
+   "arm": "A",
+   "session": "s5-http2",
+   "cost": 0.0107,
+   "turns": 1,
+   "checks": {
+    "sync_http": true
+   },
+   "answer": "Síncrono, com `ureq`, sem async.\n\n```rust\nuse std::error::Error;\n\nfn buscar_dois(url_a: &str, url_b: &str) -> Result<(String, String), Box<dyn Error>> {\n    let corpo_a = ureq::get(url_a).call()?.into_string()?;\n    let corpo_b = ureq::get(url_b).call()?.into_string()?;\n    Ok((corpo_a, corpo_b))\n}\n```",
+   "error": null
+  },
+  {
+   "arm": "A",
+   "session": "s6-deploy2",
+   "cost": 0.0157,
+   "turns": 2,
+   "checks": {
+    "deploy": true
+   },
+   "answer": "Só tenho registrado o seguinte sobre o deploy da Rota Certa [mem:01M6A8GM7TTWYWP5A7079SZX2J]:\n\n1. **Migração do banco primeiro.**\n2. **Depois a aplicação.** Nunca suba direto.\n\nSe tiver commits antes de subir, o formato registrado é `tipo(escopo): resumo`, em português [mem:01M6A8GNTAW1EBWMJ6GJE38WW8].\n\nNão encontrei nada além disso, como comandos, ambiente ou checagens pós-deploy. Se houver mais etapas, me diga e eu registro.",
+   "error": null
+  },
+  {
+   "arm": "A",
+   "session": "s7-commit",
+   "cost": 0.0115,
+   "turns": 1,
+   "checks": {
+    "commit": true
+   },
+   "answer": "Seguindo o formato da Rota Certa, `tipo(escopo): resumo` em português [mem:01M6A8GNTAW1EBWMJ6GJE38WW8]:\n\n```\nfix(frete): corrige cálculo do valor do frete\n```\n\nSe quiser, dá para deixar mais específico quando eu souber o que mudou de fato. Por exemplo:\n\n- `fix(frete): usa peso cubado no cálculo do frete`\n- `fix(frete): corrige arredondamento do valor total do frete`\n- `fix(frete): aplica faixa de CEP correta na tarifa`\n\nSe me disser qual era o erro (ou me deixar olhar o diff), ajusto o escopo e o resumo.",
+   "error": null
+  },
+  {
+   "arm": "A",
+   "session": "s8-all",
+   "cost": 0.0155,
+   "turns": 1,
+   "checks": {
+    "sync_http": true,
+    "deploy": true
+   },
+   "answer": "```rust\nuse std::error::Error;\n\n// Envia um POST com corpo JSON e devolve o corpo da resposta como texto.\npub fn send_post(url: &str, body: &serde_json::Value) -> Result<String, Box<dyn Error>> {\n    let response = ureq::post(url).send_json(body)?;\n    Ok(response.into_string()?)\n}\n```\n\nIsso é síncrono, sem tokio nem async, e usa `ureq` como você definiu para o Cuscuz [mem:01M6A8FY0TX5XWFTFDKNDVAW2F]. Pressupõe `ureq` 2.x com a feature `json`, e `serde_json` nas dependências. No `ureq` 3.x, a resposta se lê com `response.into_body().read_to_string()`.\n\n**Publicar a Rota Certa** (sempre em duas",
+   "error": null
+  },
+  {
+   "arm": "C",
+   "session": "s1-http",
+   "cost": 0.0079,
+   "turns": 1,
+   "checks": {
+    "sync_http": false
+   },
+   "answer": "```rust\nuse reqwest::Error;\n\n// Baixa o conteúdo de uma URL e retorna como texto\npub async fn fetch_url(url: &str) -> Result<String, Error> {\n    reqwest::get(url).await?.error_for_status()?.text().await\n}\n```\n\nDependências no `Cargo.toml`:\n\n```toml\nreqwest = \"0.12\"\ntokio = { version = \"1\", features = [\"full\"] }\n```",
+   "error": null
+  },
+  {
+   "arm": "C",
+   "session": "s3-deploy",
+   "cost": 0.0094,
+   "turns": 1,
+   "checks": {
+    "deploy": false
+   },
+   "answer": "Vou procurar no repositório por referências a \"Rota Certa\" e a configuração de deploy.\n\n\n<invoke name=\"Grep\">\n<parameter name=\"pattern\">Rota Certa|rota-certa|rotacerta</parameter>\n<parameter name=\"-i\">true</parameter>\n<parameter name=\"output_mode\">files_with_matches</parameter>\n</invoke>\n<invoke name=\"Glob\">\n<parameter name=\"pattern\">**/{Dockerfile,docker-compose*.yml,vercel.json,netlify.toml,fly.toml,wrangler.toml,railway.json,Procfile,.github/workflows/*,DEPLOY*.md,deploy*}</parameter>\n</invoke>\n.\n\n\n<invoke name=\"Glob\">\n<parameter name=\"pattern\">*.md</parameter>\n</invoke>\n.",
+   "error": null
+  },
+  {
+   "arm": "C",
+   "session": "s5-http2",
+   "cost": 0.0102,
+   "turns": 1,
+   "checks": {
+    "sync_http": false
+   },
+   "answer": "```rust\nuse reqwest::Client;\n\n// Consulta os dois endpoints em paralelo e devolve os corpos\npub async fn fetch_both(url_a: &str, url_b: &str) -> reqwest::Result<(String, String)> {\n    let client = Client::new();\n\n    let get = |url: String| {\n        let client = client.clone();\n        async move { client.get(url).send().await?.error_for_status()?.text().await }\n    };\n\n    tokio::try_join!(get(url_a.to_owned()), get(url_b.to_owned()))\n}\n```\n\nUsa `reqwest` e `tokio` (`reqwest = \"0.12\"`, `tokio = { version = \"1\", features = [\"full\"] }`). Não conheço o Cuscuz, então usei um cliente HTTP genéri",
+   "error": null
+  },
+  {
+   "arm": "C",
+   "session": "s6-deploy2",
+   "cost": 0,
+   "turns": null,
+   "checks": {
+    "deploy": false
+   },
+   "answer": "",
+   "error": "timeout"
+  },
+  {
+   "arm": "C",
+   "session": "s7-commit",
+   "cost": 0.0099,
+   "turns": 1,
+   "checks": {
+    "commit": false
+   },
+   "answer": "Sugestão, seguindo o estilo em inglês dos commits recentes do repositório:\n\n```\nFix freight calculation in Rota Certa\n\nFreight was computed from <causa do erro, ex.: wrong distance unit /\nmissing weight tier / rounding applied too early>. Now it <comportamento\ncorreto>, so quotes match the expected values.\n```\n\nVersão curta, se preferir uma linha só:\n\n```\nFix Rota Certa freight calculation\n```\n\nNão sei o que exatamente a mudança altera, então deixei os trechos entre `<>` para você preencher com a causa e o efeito da correção. Se me disser o que foi corrigido, ou se quiser que eu leia o diff, e",
+   "error": null
+  },
+  {
+   "arm": "C",
+   "session": "s8-all",
+   "cost": 0.011,
+   "turns": 1,
+   "checks": {
+    "sync_http": false,
+    "deploy": false
+   },
+   "answer": "Vou procurar Cuscuz e Rota Certa no repositório e nas pastas vizinhas.\n\n\n<invoke name=\"Grep\">\n<parameter name=\"pattern\">Cuscuz|Rota Certa|rota-certa|rota_certa</parameter>\n<parameter name=\"path\">/Users/voce/Developer/projects</parameter>\n<parameter name=\"-i\">true</parameter>\n<parameter name=\"output_mode\">files_with_matches</parameter>\n<parameter name=\"head_limit\">30</parameter>\n</invoke>\n<invoke name=\"Glob\">\n<parameter name=\"pattern\">/Users/voce/Developer/projects/*{cuscuz,Cuscuz,rota,Rota}*</parameter>\n</invoke>\n\n<invoke name=\"Glob\">\n<parameter name=\"pattern\">/Users/voce/Developer/projects/**",
+   "error": null
+  }
+ ],
+ "date": "2026-10-31 21:34",
+ "out": "qa/ai-sessions/results-2.json",
+ "journal_tail": "2026-11-01T00:34:41.212098Z 01M6A8FADWWTC6BPWPZ7T0491H session      start\n2026-11-01T00:34:47.571389Z 01M6A8FGMKSSSFSZT5PHQ7EYA3 session      start\n2026-11-01T00:34:47.572102Z 01M6A8FGMMZW068NT9HJ0B3THK searched     \n2026-11-01T00:34:53.041876Z 01M6A8FNZH1BD4QZR3JKT95JWE session      end\n2026-11-01T00:34:53.048213Z 01M6A8FNZRXDNY2HN5TPMDQ248 session      start\n2026-11-01T00:34:53.052237Z 01M6A8FNZWXHHQQP36P1A5GR4X signal       correction\n2026-11-01T00:34:58.415398Z 01M6A8FV7FYKZM5PNHYF9SCQQ6 session      start\n2026-11-01T00:34:58.416086Z 01M6A8FV7GS9CTGTFDANY4FHZ9 searched     \n2026-11-01T00:35:01.281415Z 01M6A8FY11J25975PCVBXWBAHS wrote       01M6A8FY0TX5XWFTFDKNDVAW2F direct\n2026-11-01T00:35:05.851393Z 01M6A8G2FVDVS7MVQCNP8YPG3T session      end\n2026-11-01T00:35:05.854762Z 01M6A8G2FYT4WTTA75AEXDC1QW session      start\n2026-11-01T00:35:11.044312Z 01M6A8G7J4VBVE2J67EESY50EX session      start\n2026-11-01T00:35:11.045243Z 01M6A8G7J58V9EDGN7XE2APESM searched     \n2026-11-01T00:35:12.225721Z 01M6A8G8Q18ARCP2TK30MT8S8J searched     \n2026-11-01T00:35:15.684969Z 01M6A8GC3447H5CHH10073N0CD session      end\n2026-11-01T00:35:15.688625Z 01M6A8GC3861BCP86PGZQKGWV4 session      start\n2026-11-01T00:35:15.696254Z 01M6A8GC3G4WRNVPVSHH3Y5D0F signal       correction\n2026-11-01T00:35:21.131114Z 01M6A8GHDB3BDTSX5E2RY5Y13N session      start\n2026-11-01T00:35:21.133175Z 01M6A8GHDDTJXAJZ0MTZF5ZC2Z searched     \n2026-11-01T00:35:24.033699Z 01M6A8GM811ZA4FN8GEP9DRQ09 wrote       01M6A8GM7TTWYWP5A7079SZX2J direct\n2026-11-01T00:35:25.651140Z 01M6A8GNTK27XD58YJWAHWT69K wrote       01M6A8GNTAW1EBWMJ6GJE38WW8 direct\n2026-11-01T00:35:31.852034Z 01M6A8GVWCH8BFMR4R5DNSF1KR session      end\n2026-11-01T00:35:31.855657Z 01M6A8GVWFT8MYP0WZBHV9FYJE session      start\n2026-11-01T00:35:40.048022Z 01M6A8H3WG76XV2084DEPV6JBB session      end\n2026-11-01T00:35:40.051913Z 01M6A8H3WKF5H8CK15CT3QYQJ7 session      start\n2026-11-01T00:35:45.728732Z 01M6A8H9E0BV0GQDM7EB8Z7V4J session      start\n2026-11-01T00:35:45.738315Z 01M6A8H9EADRPGDB2E10BGGYYZ searched     \n2026-11-01T00:35:51.680792Z 01M6A8HF806FHT69MWFEF0C918 session      end\n2026-11-01T00:35:51.688607Z 01M6A8HF881BVA5YJ6JB66PPWF session      start\n2026-11-01T00:36:02.042662Z 01M6A8HSBT4TCFDQ7PSG2X6198 session      end\n2026-11-01T00:36:02.047591Z 01M6A8HSBZG02BZ89TSG2BVSHH session      start\n2026-11-01T00:36:13.795944Z 01M6A8J4V3WC0DZEVCFJ2RR22B session      end\n",
+ "portrait": "project/cuscuz\n  - Em 2026-11-01 a pessoa corrigiu: no Cuscuz tudo é síncrono, sem tokio e sem async. Para HTTP usa-se o crate ureq. A preferência vale para todo código do Cuscuz. (2026-11-01, person) [01M6A8FY0TX5XWFTFDKNDVAW2F]\n  - A pessoa informou que o deploy da Rota Certa é sempre em duas etapas: primeiro a migração do banco, depois a aplicação, nunca direto. (data da mensagem; origem: a pessoa, correção) (2026-11-01, person) [01M6A8GM7TTWYWP5A7079SZX2J]\n  - A pessoa informou que as mensagens de commit da Rota Certa seguem o formato tipo(escopo): resumo, escrito em português. (origem: a pessoa, correção) (2026-11-01, person) [01M6A8GNTAW1EBWMJ6GJE38WW8]\n"
+}

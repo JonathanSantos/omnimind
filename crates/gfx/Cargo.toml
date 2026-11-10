@@ -1,0 +1,12 @@
+[package]
+name = "gfx"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+bytemuck.workspace = true
+cosmic-text.workspace = true
+pollster.workspace = true
+png.workspace = true
+rustc-hash.workspace = true
+wgpu.workspace = true

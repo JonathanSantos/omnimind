@@ -1,0 +1,9 @@
+format = 1
+id = "01M69V0H9BP12GBF5Y6FCA1C95"
+name = "Trabalho"
+language = ["pt-BR", "en"]
+created_at = "2026-10-31T20:39:25Z"
+
+[ai]
+allowed_clients = ["claude-code", "copilot"]
+max_read_chars = 20000

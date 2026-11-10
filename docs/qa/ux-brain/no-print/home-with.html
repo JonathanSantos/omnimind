@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Omnimind</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;600&family=Sometype+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#141416; --panel:#1D1D20; --text:#EDEDEE; --text-2:#B0B0B7; --muted:#94949C;
+  --line:#2D2D32; --hover:#232327; --sel:#2A2A2F; --accent:#4CC29A;
+  --sans:"Familjen Grotesk",system-ui,sans-serif; --mono:"Sometype Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font:400 14px/1.5 var(--sans);overflow:hidden;
+  display:grid;grid-template-columns:minmax(520px,640px) 1fr;-webkit-font-smoothing:antialiased}
+main{padding:0 56px 0 96px;display:flex;flex-direction:column;justify-content:center;position:relative}
+.brand{position:absolute;top:40px;left:96px;display:flex;align-items:center;gap:10px;
+  font-weight:600;font-size:16px;letter-spacing:.005em}
+.brand svg{width:24px;height:24px;stroke:var(--accent);fill:none;stroke-width:1.5;stroke-linecap:round}
+h1{font-weight:600;font-size:34px;line-height:1.14;letter-spacing:-.015em;margin:0;max-width:15em}
+.lead{font-size:16px;line-height:1.55;color:var(--text-2);margin:16px 0 0;max-width:30em}
+dl{margin:32px 0 0;border-top:1px solid var(--line);max-width:30em}
+.row{display:grid;grid-template-columns:24px 84px 1fr;align-items:baseline;gap:0 8px;
+  padding:12px 0;border-bottom:1px solid var(--line)}
+.row svg{width:16px;height:16px;align-self:center;justify-self:start;overflow:visible}
+dt{font-weight:600}
+dd{margin:0;color:var(--text-2)}
+.actions{display:flex;align-items:center;gap:8px;margin-top:32px}
+button{font:inherit;cursor:pointer;height:36px;padding:0 16px;border-radius:6px;border:1px solid transparent;
+  background:none;color:var(--text);transition:background-color .12s,border-color .12s,color .12s}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.primary{background:var(--accent);color:var(--bg);font-weight:600}
+.primary:hover{filter:brightness(1.1)}
+.secondary{border-color:var(--line)}
+.secondary:hover{background:var(--hover);border-color:var(--muted)}
+.ghost{color:var(--text-2);padding:0 10px;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:4px}
+.ghost:hover{color:var(--text);text-decoration-color:var(--muted)}
+.foot{margin:24px 0 0;font-size:13px;color:var(--muted)}
+.stage{padding:40px 40px 40px 0}
+.panel{position:relative;height:100%;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.tag{position:absolute;left:20px;right:20px;display:flex;justify-content:space-between;
+  font:400 12px/1 var(--mono);color:var(--muted);font-variant-numeric:tabular-nums;pointer-events:none}
+.tag.top{top:20px}.tag.bot{bottom:20px}
+.tag b{font-weight:400;color:var(--text-2)}
+@media (max-width:1100px){body{grid-template-columns:1fr}.stage{display:none}}
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21 3 5M12 21 7.5 3M12 21V2.5M12 21 16.5 3M12 21 21 5"/></svg>
+    Omnimind
+  </div>
+  <h1>A IA lembra do que você escreveu.</h1>
+  <p class="lead">Você escreve notas em Markdown numa pasta do seu computador. A IA guarda memórias dessas notas e as traz de volta na sessão seguinte.</p>
+  <dl>
+    <div class="row">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3.5" fill="#1E7F96"/></svg>
+      <dt>Nota</dt><dd>O que você escreve, em Markdown.</dd>
+    </div>
+    <div class="row">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3" fill="#B5801A"/><circle cx="8" cy="8" r="7" fill="none" stroke="#4CC29A" stroke-width="1.5"/></svg>
+      <dt>Memória</dt><dd>O que a IA guarda de uma sessão para a outra.</dd>
+    </div>
+    <div class="row">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="1.5" width="13" height="13" rx="3" fill="none" stroke="#B0B0B7" stroke-width="1.5"/></svg>
+      <dt>Cofre</dt><dd>A pasta no seu computador onde tudo fica.</dd>
+    </div>
+  </dl>
+  <div class="actions">
+    <button class="primary" id="start">Começar</button>
+    <button class="secondary" id="open">Abrir uma pasta</button>
+    <button class="ghost" id="demo">Ver um exemplo</button>
+  </div>
+  <p class="foot">Nada sai do seu computador.</p>
+</main>
+<div class="stage">
+  <div class="panel">
+    <canvas id="cv" role="img" aria-label="Ilustração de um grafo de notas e memórias que cresce a partir de um ponto na base, sem dados reais."></canvas>
+    <div class="tag top" aria-hidden="true"><span>Ilustração</span><span>sem dados reais</span></div>
+    <div class="tag bot" aria-hidden="true"><span>Notas <b id="cn">0</b></span><span>Memórias <b id="cm">0</b></span></div>
+  </div>
+</div>
+<script>
+(() => {
+  const TH = ['#C9452E','#B5801A','#1F7A5C','#1E7F96','#2B5FD9'];
+  const ACC = '#4CC29A', EDGE = '#94949C', PANEL = '#1D1D20';
+  const W = 720, H = 760, root = {x: W/2, y: H - 36};
+  let s = 11;
+  const rand = () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const nodes = [], edges = [], queue = [];
+  const grow = (x, y, a, len, d, t0, th, parent) => {
+    const nx = x + Math.cos(a) * len, ny = y + Math.sin(a) * len;
+    if (nx < 28 || nx > W - 28 || ny < 44 || ny > H - 44) return;
+    const t1 = t0 + .45 + len / 230;
+    const n = {x: nx, y: ny, t: t1, th, d, parent, mem: d > 0 && rand() < .2};
+    nodes.push(n); edges.push({ax: x, ay: y, bx: nx, by: ny, t0, t1, w: 1});
+    if (d < 6) queue.push({n, a, len, d, t1, th});
+  };
+  for (let i = 0; i < 5; i++) grow(root.x, root.y, -Math.PI/2 + (i - 2) * .5, 150, 0, i * .18, i, null);
+  while (queue.length && nodes.length < 210) {
+    const q = queue.shift();
+    const k = q.d === 0 ? 2 : rand() < .45 ? 1 : rand() < .8 ? 2 : 3;
+    for (let i = 0; i < k; i++) {
+      const spread = k > 1 ? (i - (k - 1) / 2) * .6 : 0;
+      const a = q.a + (rand() - .5) * .7 + spread;
+      const n0 = nodes.length;
+      grow(q.n.x, q.n.y, a, q.len * (.74 + rand() * .12), q.d + 1, q.t1 + rand() * .3, q.th, q.n);
+      if (nodes.length > n0) nodes[n0].parent = q.n;
+    }
+  }
+  let links = 0;
+  for (let i = 0; i < nodes.length && links < 22; i++)
+    for (let j = i + 1; j < nodes.length && links < 22; j++) {
+      const a = nodes[i], b = nodes[j];
+      if (a.d < 2 || b.d < 2 || a.parent === b || b.parent === a || a.parent === b.parent) continue;
+      if (Math.hypot(a.x - b.x, a.y - b.y) < 64 && rand() < .3) {
+        const t0 = Math.max(a.t, b.t) + .1;
+        edges.push({ax: a.x, ay: a.y, bx: b.x, by: b.y, t0, t1: t0 + .6, w: .5}); links++;
+      }
+    }
+  const total = Math.max(...nodes.map(n => n.t)) + .5;
+  const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+  const cn = document.getElementById('cn'), cm = document.getElementById('cm');
+  const ease = p => 1 - Math.pow(1 - Math.min(1, Math.max(0, p)), 3);
+  let T = 0;
+  function draw(t) {
+    const w = cv.clientWidth, h = cv.clientHeight, dpr = devicePixelRatio || 1;
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+      cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    }
+    const k = Math.min(w / W, h / H) * .94;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    ctx.translate((w - W * k) / 2, (h - H * k) / 2 + 6); ctx.scale(k, k);
+    ctx.lineCap = 'round';
+    for (const e of edges) {
+      if (t <= e.t0) continue;
+      const p = ease((t - e.t0) / (e.t1 - e.t0));
+      ctx.globalAlpha = e.w < 1 ? .28 : .42; ctx.strokeStyle = EDGE; ctx.lineWidth = e.w * 1.2 / k * .9;
+      ctx.beginPath(); ctx.moveTo(e.ax, e.ay);
+      ctx.lineTo(e.ax + (e.bx - e.ax) * p, e.ay + (e.by - e.ay) * p); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    let nc = 0, mc = 0;
+    for (const n of nodes) {
+      if (t < n.t) continue;
+      nc++; if (n.mem) mc++;
+      const g = ease((t - n.t) / .35);
+      ctx.fillStyle = TH[n.th]; ctx.beginPath(); ctx.arc(n.x, n.y, 3.2 * g, 0, 7); ctx.fill();
+      if (n.mem) {
+        ctx.strokeStyle = ACC; ctx.lineWidth = 1.5; ctx.beginPath();
+        ctx.arc(n.x, n.y, 7.5 * g, 0, 7); ctx.stroke();
+      }
+    }
+    ctx.fillStyle = ACC; ctx.beginPath(); ctx.arc(root.x, root.y, 4, 0, 7); ctx.fill();
+    cn.textContent = nc; cm.textContent = mc;
+  }
+  const still = matchMedia('(prefers-reduced-motion: reduce)');
+  let t0 = null;
+  function frame(now) {
+    if (t0 === null) t0 = now;
+    T = (now - t0) / 1000 - .3;
+    if (T >= total) { T = total; draw(T); return; }
+    draw(Math.max(T, 0)); requestAnimationFrame(frame);
+  }
+  addEventListener('resize', () => draw(T));
+  document.fonts.ready.then(() => {
+    if (still.matches) { T = total; draw(T); } else requestAnimationFrame(frame);
+  });
+})();
+</script>
+</body>
+</html>

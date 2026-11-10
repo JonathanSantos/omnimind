@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Métricas · Omnimind</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d0e10;--side:#111214;--line:rgba(255,255,255,.07);--ink:#ece9e3;--ink2:#9b9ca1;--ink3:#64666b;--acc:#5fd4a6;--you:#a9a393;--mono:"JetBrains Mono",ui-monospace,Menlo,monospace;color-scheme:dark}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;overflow-x:hidden}
+body{background:var(--bg);color:var(--ink);font:400 13.5px/1.4 "Schibsted Grotesk",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+ul{list-style:none;padding:0}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:6px}
+::selection{background:rgba(95,212,166,.28)}
+.app{display:grid;grid-template-columns:232px minmax(0,1fr);height:100vh}
+aside{background:var(--side);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:20px 12px 16px}
+.brand{display:flex;align-items:center;gap:10px;padding:0 10px;font-weight:600;font-size:15px;letter-spacing:-.01em;margin-bottom:22px}
+.find{display:flex;justify-content:space-between;align-items:center;width:100%;height:34px;padding:0 10px;margin-bottom:18px;border:1px solid var(--line);border-radius:8px;color:var(--ink3)}
+.find kbd{font:11px var(--mono)}
+nav a{display:flex;justify-content:space-between;align-items:center;height:36px;padding:0 10px;border-radius:8px;color:var(--ink2);text-decoration:none}
+nav a:hover{color:var(--ink);background:rgba(255,255,255,.03)}
+nav a[aria-current]{background:#1e1f23;color:var(--ink)}
+nav small{font:11px var(--mono);color:var(--ink3)}
+.foot{margin-top:auto;display:grid;gap:6px}
+.foot>*{display:flex;align-items:center;gap:8px;height:32px;padding:0 10px;font-size:12px;color:var(--ink2);text-align:left;border-radius:8px}
+.foot span::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 3px rgba(95,212,166,.15)}
+.foot button{font-size:13.5px}
+main{overflow-y:auto;overflow-x:hidden;padding:0 32px 28px;scrollbar-width:thin;scrollbar-color:#2a2b2f transparent}
+header{display:flex;align-items:center;gap:14px;height:60px}
+h1{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.seg{display:flex;gap:2px;padding:2px;border-radius:9px;background:rgba(255,255,255,.035)}
+.seg button{padding:4px 11px;border-radius:7px;font-size:12.5px;color:var(--ink2)}
+.seg button:hover{color:var(--ink)}
+.seg [aria-checked=true]{background:#26272c;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}
+h2{font-size:13px;font-weight:600}
+h2 small{font:400 11px var(--mono);color:var(--ink3);margin-left:10px}
+section{margin-top:26px}
+.rep{display:grid;grid-template-columns:250px 1fr;gap:56px;margin-top:6px;padding:20px 0 14px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.big{font:500 76px/1 "Schibsted Grotesk",sans-serif;letter-spacing:-.05em;color:var(--acc);margin:14px 0 6px;font-variant-numeric:tabular-nums}
+.cap{color:var(--ink2)}
+.rep p{font-size:16px;line-height:1.38;letter-spacing:-.01em;max-width:52ch}
+.rep p span{color:var(--ink2)}
+.led{margin-top:14px}
+.led li{display:grid;grid-template-columns:1fr auto 38px;align-items:center;gap:16px;height:34px;border-top:1px dashed rgba(255,255,255,.1)}
+.led q{quotes:"“" "”"}
+.led b{font:500 12px var(--mono);text-align:right;color:var(--ink2)}
+.tally{display:flex}
+.g{display:flex;gap:4px;position:relative;margin-left:12px;text-decoration:none}
+.g u{display:block;width:1.5px;height:16px;background:var(--ink2)}
+.g.f::after{content:"";position:absolute;left:-3px;right:-3px;top:50%;height:1.5px;background:var(--acc);transform:rotate(-24deg)}
+.nums{display:grid;grid-template-columns:repeat(4,1fr);gap:32px;margin-top:26px}
+.nums>div{border-top:1px solid var(--line);padding-top:14px}
+.nums dt{color:var(--ink2);font-size:12.5px}
+.nums dd{font:500 34px/1.15 "Schibsted Grotesk",sans-serif;letter-spacing:-.035em;font-variant-numeric:tabular-nums;margin:4px 0 2px}
+.nums dd.dl{font:11px var(--mono);letter-spacing:0;color:var(--ink3)}
+.ch-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px}
+.leg{display:flex;gap:16px;color:var(--ink2);font-size:12px}
+.leg i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;background:var(--acc)}
+.leg .v{background:var(--you)}
+.plot{position:relative;height:156px;margin-left:34px}
+.gl{position:absolute;left:0;right:0;border-top:1px solid var(--line)}
+.gl span{position:absolute;left:-34px;top:-7px;font:10px var(--mono);color:var(--ink3)}
+.cols{position:absolute;inset:0;display:flex}
+.cols.s7{--w:56px}
+.col{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:0 var(--g);outline-offset:-1px}
+.col:hover,.col:focus-visible{background:rgba(255,255,255,.035)}
+.st{width:var(--w,100%);height:var(--h);display:flex;flex-direction:column-reverse;transform-origin:bottom;transition:opacity .15s;animation:up .6s cubic-bezier(.2,.8,.2,1) backwards;animation-delay:calc(var(--i)*360ms/var(--n))}
+.st i{background:var(--acc)}
+.st .v{background:var(--you);box-shadow:0 1px 0 var(--bg)}
+.st :last-child{border-radius:2px 2px 0 0}
+.cols:hover .col:not(:hover) .st{opacity:.5}
+.tip{position:absolute;transform:translateX(-50%);padding:7px 10px;background:#1b1c20;border:1px solid rgba(255,255,255,.1);border-radius:8px;font:11.5px/1.5 var(--mono);white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .12s;z-index:2;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+.tip.on{opacity:1}
+.tip b{display:block;font:500 12px "Schibsted Grotesk",sans-serif}
+.axis{display:flex;margin:8px 0 0 34px;font:10.5px var(--mono);color:var(--ink3)}
+.axis span{flex:1;text-align:center}
+.axis.r{justify-content:space-between}
+.axis.r span{flex:none}
+.axis em{font-style:normal;opacity:.6}
+.lists{display:grid;grid-template-columns:1.2fr 1fr;gap:56px;margin-top:26px}
+.lists section{margin:0}
+.lists h2{margin-bottom:12px}
+.rank li{display:grid;grid-template-columns:22px 1fr auto;column-gap:8px;align-items:baseline;padding:9px 0 10px;border-top:1px solid var(--line)}
+.rank .rk{font:10.5px var(--mono);color:var(--ink3)}
+.rank b{font:500 12.5px var(--mono)}
+.rank i{grid-column:2/4;height:3px;margin-top:7px;border-radius:2px;background:rgba(255,255,255,.06);position:relative;overflow:hidden}
+.rank i::after{content:"";position:absolute;inset:0;width:var(--w);background:var(--acc);border-radius:2px;transform-origin:left;animation:right .6s cubic-bezier(.2,.8,.2,1) backwards}
+.th li{grid-template-columns:1fr auto 40px}
+.th i{grid-column:1/-1}
+.th i::after{background:#8f9096}
+.th small{font:11px var(--mono);color:var(--ink3);text-align:right}
+@keyframes up{from{transform:scaleY(0)}}
+@keyframes right{from{transform:scaleX(0)}}
+@media(prefers-reduced-motion:reduce){*,::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside>
+  <div class="brand"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4v16M19 4 8.5 12 19 20"/></svg>Omnimind</div>
+  <button class="find">Buscar <kbd>⌘K</kbd></button>
+  <nav aria-label="Principal">
+    <a href="#">Notas <small>47</small></a><a href="#">Memórias <small>94</small></a><a href="#">Grafo</a><a href="#">Atividade</a><a href="#" aria-current="page">Métricas</a><a href="#">Perfil</a>
+  </nav>
+  <div class="foot"><span>Claude Code conectado</span><button>Ajustes</button></div>
+</aside>
+<main>
+  <header><h1>Métricas</h1>
+    <div class="seg" role="radiogroup" aria-label="Período">
+      <button role="radio" data-k="7" aria-checked="true">7 dias</button><button role="radio" data-k="30" aria-checked="false">30 dias</button><button role="radio" data-k="90" aria-checked="false">90 dias</button>
+    </div>
+  </header>
+  <section class="rep" aria-labelledby="rt">
+    <div><h2 id="rt">Sem precisar repetir</h2><div class="big" id="rn">0</div><div class="cap">repetições evitadas</div></div>
+    <div><p id="rp"></p><ul class="led" id="led"></ul></div>
+  </section>
+  <dl class="nums">
+    <div><dt>Leituras</dt><dd></dd><dd class="dl"></dd></div>
+    <div><dt>Memórias novas</dt><dd></dd><dd class="dl"></dd></div>
+    <div><dt>Correções suas</dt><dd></dd><dd class="dl"></dd></div>
+    <div><dt>Buscas com resposta</dt><dd></dd><dd class="dl"></dd></div>
+  </dl>
+  <section>
+    <div class="ch-h"><h2>Leituras por dia <small id="rg"></small></h2><div class="leg"><span><i></i>IA</span><span><i class="v"></i>Você</span></div></div>
+    <div class="plot" id="plot"><div id="grid"></div><div class="cols" id="cols" role="group" aria-label="Leituras por dia. Use as setas para percorrer."></div><div class="tip" id="tip"></div></div>
+    <div class="axis" id="axis"></div>
+  </section>
+  <div class="lists">
+    <section><h2>Mais lidas</h2><ul class="rank" id="top"></ul></section>
+    <section><h2>Temas mais lidos</h2><ul class="rank th" id="th"></ul></section>
+  </div>
+</main>
+</div>
+<script>
+const $=s=>document.querySelector(s),fmt=n=>n.toLocaleString('pt-BR'),RM=matchMedia('(prefers-reduced-motion: reduce)');
+const WN=['dom','seg','ter','qua','qui','sex','sáb'],MN='jan fev mar abr mai jun jul ago set out nov dez'.split(' '),fd=d=>d.getDate()+' '+MN[d.getMonth()];
+const RP=['usar ureq, sem tokio','migração antes da aplicação','commit no formato tipo(escopo)'];
+const D={
+  7:{n:7,w:'Nesta semana',v:[214,18,6,87],r:9,rc:[4,3,2],dl:['+6%','+13%','−25%','+3 pontos']},
+  30:{n:30,w:'Nos últimos 30 dias',v:[1042,63,21,81],r:37,rc:[15,12,10],dl:['+11%','+8%','−12%','+2 pontos']},
+  90:{n:90,w:'Nos últimos 90 dias',v:[2871,140,74,76],r:96,rc:[38,31,27],dl:['+19%','+22%','−9%','+5 pontos']}};
+const ML=[['Deploy em duas etapas',31],['Fila síncrona no Cuscuz',24],['Formato de commit',19],['Janela de deploy da Rota Certa',12],['Reunião com a Coopcarga',7]];
+const K={7:[1,1,1,1,1],30:[4.6,4.9,5.4,4.3,3.9],90:[12.8,13.6,13.1,12.4,11]};
+const TH=['Rota Certa','Arquitetura','Preferências','Estudos de Go','Design'],TW={7:[92,54,31,22,15],30:[88,56,34,24,18],90:[83,57,36,25,19]};
+const BASE=[[28,4],[41,6],[33,3],[37,5],[29,2],[9,0],[14,3]],WD=[.3,1,1.15,1,1.05,.95,.4];
+// distribui um total inteiro em pesos, sem perder nem sobrar unidades
+const alloc=(w,T)=>{const s=w.reduce((a,b)=>a+b),f=w.map(x=>x/s*T),o=f.map(Math.floor);let r=T-o.reduce((a,b)=>a+b);f.map((x,i)=>[x-o[i],i]).sort((a,b)=>b[0]-a[0]).slice(0,r).forEach(([,i])=>o[i]++);return o};
+const rng=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+function series(n,T){
+  const ds=[...Array(n)].map((_,i)=>new Date(2025,4,4-(n-1)+i));
+  if(n==7)return ds.map((d,i)=>({d,ia:BASE[i][0],vc:BASE[i][1]}));
+  const R=rng(n*97),tot=alloc(ds.map((d,i)=>WD[d.getDay()]*(.7+R()*.6)*(.85+.3*i/n)),T);
+  const vc=alloc(tot.map(t=>t*(.6+R()*.8)),Math.round(T*.107));
+  return ds.map((d,i)=>({d,ia:tot[i]-vc[i],vc:vc[i]}));
+}
+const tw=(el,to,f)=>{cancelAnimationFrame(el.r);const a=+el.dataset.v||0,t0=performance.now();el.dataset.v=to;
+  const g=t=>{const p=RM.matches?1:Math.min(1,(t-t0)/550);el.textContent=f(Math.round(a+(to-a)*(1-(1-p)**3)));if(p<1)el.r=requestAnimationFrame(g)};g(t0)};
+const tally=n=>{let h='';for(;n>0;n-=5){const k=Math.min(n,5);h+=`<s class="g${k>4?' f':''}">${'<u></u>'.repeat(Math.min(k,4))}</s>`}return h};
+let S=[],TOP=1;
+const tip=$('#tip'),P=$('#plot'),cols=$('#cols');
+function show(k){
+  const d=D[k];S=series(d.n,d.v[0]);
+  const tot=S.map(x=>x.ia+x.vc),mx=Math.max(...tot),st=[10,20,50,100,200].find(x=>mx/x<=4);TOP=Math.ceil(mx/st)*st;
+  [...document.querySelectorAll('.nums dd:not(.dl)')].forEach((el,i)=>tw(el,d.v[i],i==3?n=>n+'%':fmt));
+  document.querySelectorAll('.dl').forEach((el,i)=>el.textContent=d.dl[i]+' vs. período anterior');
+  tw($('#rn'),d.r,String);
+  $('#rp').innerHTML=`${d.w}, a IA já sabia o que você costumava explicar. <span>Contamos cada vez que uma memória evitou uma instrução repetida.</span>`;
+  $('#led').innerHTML=RP.map((q,i)=>`<li><q>${q}</q><span class="tally" aria-hidden="true">${tally(d.rc[i])}</span><b>${d.rc[i]}×</b></li>`).join('');
+  $('#rg').textContent=fd(S[0].d)+' – '+fd(S[d.n-1].d);
+  let g='';for(let v=0;v<=TOP;v+=st)g+=`<div class="gl" style="bottom:${v/TOP*100}%"><span>${v}</span></div>`;
+  $('#grid').innerHTML=g;
+  cols.className='cols'+(d.n==7?' s7':'');cols.style.setProperty('--n',d.n);
+  cols.innerHTML=S.map((x,i)=>`<div class="col" role="img" tabindex="${i?-1:0}" data-i="${i}" style="--i:${i};--g:${d.n==7?0:d.n==30?3:1}px" aria-label="${WN[x.d.getDay()]}, ${fd(x.d)}: ${x.ia} da IA, ${x.vc} suas"><div class="st" style="--h:${tot[i]/TOP*100}%"><i style="flex:${x.ia}"></i><i class="v" style="flex:${x.vc}"></i></div></div>`).join('');
+  const ax=$('#axis');ax.className='axis'+(d.n>7?' r':'');
+  ax.innerHTML=d.n==7?S.map(x=>`<span>${WN[x.d.getDay()]} <em>${x.d.getDate()}/${x.d.getMonth()+1}</em></span>`).join(''):[0,d.n>>1,d.n-1].map(i=>`<span>${fd(S[i].d)}</span>`).join('');
+  const m=ML.map(([t,n],i)=>[t,Math.round(n*K[k][i])]);
+  $('#top').innerHTML=m.map(([t,n],i)=>`<li><span class="rk">${i+1}</span><span>${t}</span><b>${fmt(n)}</b><i style="--w:${n/m[0][1]*100}%"></i></li>`).join('');
+  const tv=alloc(TW[k],d.v[0]);
+  $('#th').innerHTML=tv.map((n,i)=>`<li><span>${TH[i]}</span><b>${fmt(n)}</b><small>${Math.round(n/d.v[0]*100)}%</small><i style="--w:${n/tv[0]*100}%"></i></li>`).join('');
+}
+function tipOn(c){
+  const x=S[c.dataset.i];
+  tip.innerHTML=`<b>${WN[x.d.getDay()]}, ${fd(x.d)}</b>IA ${x.ia} · Você ${x.vc}`;tip.classList.add('on');
+  const w=tip.offsetWidth,cx=c.offsetLeft+c.offsetWidth/2;
+  tip.style.left=Math.min(Math.max(cx,w/2),P.clientWidth-w/2)+'px';
+  tip.style.bottom=`calc(${(x.ia+x.vc)/TOP*100}% + 8px)`;
+}
+cols.onmouseover=e=>{const c=e.target.closest('.col');c&&tipOn(c)};
+cols.onmouseleave=cols.onfocusout=()=>tip.classList.remove('on');
+cols.onfocusin=e=>tipOn(e.target.closest('.col'));
+cols.onkeydown=e=>{const c=e.target.closest('.col'),n=e.key=='ArrowRight'?c.nextElementSibling:e.key=='ArrowLeft'?c.previousElementSibling:null;
+  if(n){e.preventDefault();c.tabIndex=-1;n.tabIndex=0;n.focus()}};
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.seg button').forEach(x=>x.setAttribute('aria-checked',x==b));
+  tip.classList.remove('on');show(+b.dataset.k)});
+document.querySelectorAll('nav a').forEach(a=>a.onclick=e=>e.preventDefault());
+show(7);
+</script>
+</body>
+</html>

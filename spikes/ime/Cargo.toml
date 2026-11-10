@@ -1,0 +1,11 @@
+[package]
+name = "spike-ime"
+version = "0.0.0"
+edition = "2021"
+[workspace]
+[dependencies]
+winit = "=0.30.13"
+objc2 = "0.5"
+raw-window-handle = "0.6"
+[profile.dev]
+debug = 0

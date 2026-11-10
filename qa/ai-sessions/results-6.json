@@ -1,0 +1,662 @@
+{
+ "date": "2026-11-01",
+ "model": "claude-sonnet-5-5",
+ "note": "Perfil e projetos fictícios. Controle inválido da primeira rodada fora do arquivo: o modelo escreveu chamadas de ferramenta como texto.",
+ "spent_total": 0.6495,
+ "invalid_control_cost": 0.1462,
+ "rows": [
+  {
+   "arm": "omnimind",
+   "reply": "Apliquei suas preferências: `thiserror` para o tipo de erro, `anyhow` só no `main`, nenhum `unwrap`, núcleo puro e IO na borda, comentários em português.\n\n**Cargo.toml** (dependências)\n```toml\n[dependencies]\nanyhow = \"1\"\nthiserror = \"2\"\n```\n\n**src/error.rs**\n```rust\nuse std::path::PathBuf;\nuse thiserror::Error;\n\n#[derive(Debug, Error)]\npub enum RenameError {\n    #[error(\"não foi possível ler {path}: {source}\")]\n    Io {\n        path: PathBuf,\n        #[source]\n        source: std::io::Error,\n    },\n\n    #[error(\"sem data disponível em {0}\")]\n    MissingDate(PathBuf),\n\n    #[error(\"destino já existe: {0}\")]\n    TargetExists(PathBuf),\n}\n```\n\n**src/main.rs**\n```rust\nmod error;\n\nuse std::path::{Path, PathBuf};\n\nuse anyhow::{Context, Result};\nuse error::RenameError;\n\n/// Núcleo puro: calcula o novo nome a partir da data (sem IO).\nfn new_name(date: &str, ext: &str) -> String {\n    format!(\"{date}.{ext}\")\n}\n\n/// Borda: lê a data do arquivo (EXIF/mtime). Esqueleto.\nfn read_date(path: &Path) -> Result<String, RenameError> {\n    Err(RenameError::MissingDate(path.to_path_buf()))\n}\n\n/// Borda: executa o rename no disco.\nfn rename_file(from: &Path, to: &Path) -> Result<(), RenameError> {\n    if to.exists() {\n        return Err(RenameError::TargetExists(to.to_path_buf()));\n    }\n    std::fs::rename(from, to).map_err(|source| RenameError::Io {\n        path: from.to_path_buf(),\n        source,\n    })\n}\n\nfn main() -> Result<()> {\n    let dir = std::env::args().nth(1).map(PathBuf::from).unwrap_or_else(|| PathBuf::from(\".\"));\n    let entries = std::fs::read_dir(&dir).with_context(|| format!(\"lendo {}\", dir.display()))?;\n\n    for entry in entries {\n        let path = entry?.path();\n        let Some(ext) = path.extension().and_then(|e| e.to_str()) else {\n            continue;\n        };\n        let date = read_date(&path)?;\n        let target = path.with_file_name(new_name(&date, ext));\n        rename_file(&path, &target)?;\n    }\n    Ok(())\n}\n```\n\nNão rodei nem compilei nada. `read_date` é só um stub que sempre devolve `MissingDate`, então o CLI ainda não renomeia nada. Dá para preencher com `kamadak-exif` ou, como fallback, com `fs::metadata().modified()`.\n\nSe você quiser separar em lib + bin, `error.rs` e `new_name` vão para `lib.rs`, e o `main` fica só com `anyhow` e a borda.",
+   "tools": [],
+   "seconds": 13.6,
+   "cost": 0.0406634,
+   "input_tokens": 9915,
+   "output_tokens": 1206,
+   "brief_chars": 6726,
+   "models": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "case": "new-rust",
+   "folder": "renomeia-fotos",
+   "user": "vou começar um CLI em Rust pra renomear fotos por data. me dá o esqueleto de main.rs e do tipo de erro, bem curto.",
+   "checks": {
+    "erros como eu uso": true,
+    "binário com anyhow": true,
+    "sem unwrap": true,
+    "comentário em português": true
+   }
+  },
+  {
+   "arm": "omnimind",
+   "reply": "Sim, você já passou por isso. A anotação diz que o `pg_query_go` usa CGO e quebrou a compilação cruzada, e que você resolveu usando **`zig cc` como `CC` no CI** (2026-11-01) [mem:01M6BVR69HAB9EK8KS1D08TWV1].\n\nA anotação é curta e não guarda os comandos exatos nem o target. Não sei se o caso anterior era linux-arm64. Pelo mesmo princípio, o ponto de partida seria algo assim:\n\n```sh\nCGO_ENABLED=1 GOOS=linux GOARCH=arm64 \\\nCC=\"zig cc -target aarch64-linux-gnu\" \\\nCXX=\"zig c++ -target aarch64-linux-gnu\" \\\ngo build ./...\n```\n\nIsso é uma reconstrução minha, não o que você registrou. Dois pontos para conferir:\n- **Instalação do zig no CI:** o runner precisa ter o zig instalado, por exemplo com `goto-bus-stop/setup-zig` ou um download direto.\n- **Link estático:** se quiser um binário estático, troque `gnu` por `musl` no target e teste. O `pg_query_go` compila C bem grande, então o build pode demorar.\n\nSe o erro continuar, cole a mensagem que aparece no CI e eu analiso.",
+   "tools": [
+    "memory_read"
+   ],
+   "seconds": 13.8,
+   "cost": 0.0375745,
+   "input_tokens": 20292,
+   "output_tokens": 612,
+   "brief_chars": 6726,
+   "models": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "case": "cross-compile",
+   "folder": "ponte-pg",
+   "user": "tô usando pg_query_go num CLI novo e a compilação cruzada pra linux-arm64 no CI tá falhando. já passei por isso? o que eu fiz?",
+   "checks": {
+    "lembra a solução": true,
+    "diz de onde veio": false
+   }
+  },
+  {
+   "arm": "omnimind",
+   "reply": "Você parou no **solver que garante jogada segura sem 50/50** [mem:01M6BVR6CZA9DEA16SW2C4SXXC].\n\n**Próximo passo:** faltam duas coisas:\n1. Testes de propriedade com `proptest` para o solver.\n2. O HUD.\n\nEu começaria pelos testes de propriedade. O solver é a parte mais delicada, e o HUD fica mais seguro de construir depois que ele estiver validado.\n\nDuas decisões já tomadas que valem para esse trabalho:\n- O gerador usa seed por chunk com xoshiro256, para ser determinístico [mem:01M6BVR6CP4AKS4EA26YRGH3EW]. Isso ajuda os testes de propriedade, porque dá para reproduzir qualquer caso que falhe a partir da seed.\n- Seus padrões de Rust: sem `unwrap` fora de teste, e testes nunca escrevem no HOME real. Os testes devem usar pasta temporária com HOME apontando para ela.\n\nO diretório não é um repositório git e a nota do projeto só tem uma linha. Por isso não consigo confirmar o estado do código. Se quiser, eu olho os arquivos do solver para ver o que já está coberto antes de escrever os testes.",
+   "tools": [
+    "memory_search"
+   ],
+   "seconds": 14.0,
+   "cost": 0.0410487,
+   "input_tokens": 21312,
+   "output_tokens": 560,
+   "brief_chars": 6726,
+   "models": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "case": "resume",
+   "folder": "mina-infinita",
+   "user": "voltei pra cá depois de três semanas. onde parei e qual o próximo passo?",
+   "checks": {
+    "onde parou": true,
+    "próximo passo": true
+   }
+  },
+  {
+   "arm": "omnimind",
+   "reply": "Provavelmente não, pelo que você já decidiu.\n\n- A carta-rapida foi definida como JavaScript puro com ES modules, **sem build**, porque é um estudo antes de portar para Godot [mem:01M6BVR6DYZQG6GZX34JKP4J9Z]. O Vite é uma ferramenta de build, então contradiz isso.\n- O core é lógica pura, sem DOM, para facilitar a portabilidade [mem:01M6BVR6EA4ARHQKEJY9KJYBFA]. O Tailwind mexe só na camada de UI, que não vai para o Godot. Ele não ajuda no que importa para o porte e põe `node_modules` e configuração num protótipo que hoje não tem nada disso.\n\n**Para ir mais rápido sem quebrar a decisão:**\n- **Live reload:** `npx serve .` ou `python3 -m http.server`, ou a extensão Live Server do VS Code. Os ES modules funcionam direto no navegador, sem bundler.\n- **CSS:** um único `style.css` com custom properties e classes simples. Num protótipo de cartas isso costuma bastar.\n- **Testes do core:** `node --test`, já que o core não depende de DOM.\n\n**Quando eu reconsideraria:** se a UI crescer a ponto de o CSS à mão virar o gargalo, ou se você precisar de HMR para iterar no visual. Nesse caso, eu usaria o Vite só na pasta da UI, sem tocar no core. Também registraria a mudança num ADR em `docs/adr`, já que você gosta de registrar decisões assim [mem:01M6BVR676Z0CXG138FP8JNX9J].\n\nSe o motivo é outro, como protótipo visual ou muita iteração de estilo, me diga. Aí a conta muda e o Vite só na UI pode valer a pena.",
+   "tools": [],
+   "seconds": 13.8,
+   "cost": 0.0359274,
+   "input_tokens": 9951,
+   "output_tokens": 718,
+   "brief_chars": 6726,
+   "models": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "case": "why-no-build",
+   "folder": "carta-rapida",
+   "user": "quero adicionar Vite e Tailwind aqui pra ir mais rápido. faz sentido?",
+   "checks": {
+    "lembra o motivo": true,
+    "core sem DOM": true
+   }
+  },
+  {
+   "arm": "omnimind",
+   "reply": "Pela memória: o binário de hook do trilho fica **sem tokio e sem rede**, para abrir em menos de 20 ms (decisão de 2026-11-01) [mem:01M6BVR68D2V0XZH0FT32E3AJH].\n\nEntão não, você não deve usar tokio nele. Se precisar de concorrência, dá para ficar com código síncrono ou threads da std, e deixar qualquer IO assíncrono ou de rede para outros binários.",
+   "tools": [],
+   "seconds": 9.4,
+   "cost": 0.0302434,
+   "input_tokens": 9925,
+   "output_tokens": 160,
+   "brief_chars": 6726,
+   "models": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "case": "no-bleed",
+   "folder": "vitrola",
+   "user": "qual é a regra do binário de hook desse projeto? posso usar tokio nele?",
+   "checks": {
+    "não atribui a regra à vitrola": true
+   }
+  },
+  {
+   "arm": "omnimind",
+   "reply": "Vou ler o que você registrou sobre Go para basear as perguntas nisso.Três perguntas, uma para cada tema de Go que você registrou:\n\n1. **Goroutines:** Quando uma goroutine vaza porque ninguém lê do canal? Como você evita isso usando `context`?\n\n2. **Erros:** Uma função devolve um erro embrulhado com `fmt.Errorf(\"...: %w\", err)`. Por que `err == ErrNotFound` falha nesse caso e `errors.Is(err, ErrNotFound)` funciona?\n\n3. **Slices:** O `append` pode compartilhar o array de base com o slice original. Qual problema isso causa quando o slice sai de uma função? Qual é a correção?\n\nResponda quando quiser. Depois eu comparo com o que você anotou.",
+   "tools": [
+    "memory_read",
+    "memory_read",
+    "memory_read"
+   ],
+   "seconds": 11.5,
+   "cost": 0.0405281,
+   "input_tokens": 21096,
+   "output_tokens": 592,
+   "brief_chars": 6726,
+   "models": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "case": "review",
+   "folder": "estudo-go",
+   "user": "me faz 3 perguntas de revisão só sobre o que eu já estudei de Go.",
+   "checks": {
+    "goroutine": true,
+    "errors.Is": true,
+    "append": true
+   }
+  },
+  {
+   "arm": "omnimind",
+   "reply": "Pelo que está na sua memória, o que se repete se divide em três grupos. Uma ressalva: li só o briefing e uma busca, então não olhei as 33 memórias que ficaram de fora.\n\n## 1. Convenções que valem para todo projeto\nPodem ir direto para o template, e quase não dependem de stack.\n- **Arquitetura:** functional core, imperative shell. Lógica pura no núcleo, IO só na borda. [mem:01M6BVR652B59KYNJ3W2TSA0GM]\n- **Estilo de código:** early return, funções pequenas, e trait só quando existem duas implementações reais. [mem:01M6BVR66T5Q8H8TVRH1WNH2ZP]\n- **Idioma:** identificadores em inglês, comentários e docs em português. [mem:01M6BVR65YSRA5AA5QQ0KNF1SM]\n- **Testes:** nunca escrevem no HOME real. Usam pasta temporária com HOME apontando para ela. [mem:01M6BVR66C66V7BW9X6D9WV0MV]\n- **Decisões:** `docs/adr/`, uma decisão por arquivo. [mem:01M6BVR676Z0CXG138FP8JNX9J]\n\n## 2. Variantes por stack\nEssas pedem um template por stack. Um único template genérico não serve.\n- **Rust:** sem `unwrap` fora de teste, com `thiserror` nas libs e `anyhow` nos binários. [mem:01M6BVR65HHANC4XX5E2V873SG]\n- **Tauri 2:** `rustup target add x86_64-apple-darwin` e `tauri build --target universal-apple-darwin`. [mem:01M6BVR682YW25HABXP6YC5QW0]\n- **Go:** `zig cc` como `CC` no CI quando há CGO e compilação cruzada, como no pg_query_go. [mem:01M6BVR69HAB9EK8KS1D08TWV1]\n- **Extensão VS Code:** esbuild com `vscode` como external. [mem:01M6BVR6AQ592DS39NQV11360C]\n\n## 3. Padrões de projeto que reaparecem\nOs projetos nascem da mesma combinação de poucas stacks e poucos domínios:\n- **Stacks:** Rust+wgpu, Godot/GDScript, Go+sqlite, Node sem dependências, Tauri+Leptos, Flutter, Python+FastAPI.\n- **Domínios:** fila de tarefas, parser de configuração, cache de disco, painel de métricas, renderização por tiles, geração de assets, editor de nós.\n\nPela lista, \"fila de tarefas\" aparece em pelo menos 6 projetos (bussola, dendê, farol, sertao, umbu, zabumba e boneca). \"Parser de configuração\" aparece em 5. Esses domínios dariam bons módulos de partida em vez de código reescrito a cada vez.\n\nAs várias \"Lição do X\" parecem seguir o mesmo molde: \"X ficou simples depois de separar Y\". Isso sugere uma regra de template, **separar o domínio antes de implementar**. Você pode ter só um molde de texto repetido, porque os snippets que vi são genéricos. Vale abrir uma dessas lições para conferir.\n\n## Pontos de partida\n- Um **template base** com o grupo 1: ADR, esqueleto de teste com HOME temporário e um `CLAUDE.md` com as convenções.\n- Um **template por stack**, começando por Rust, que concentra mais regras.\n- Para os padrões de decisão da peneira e do trilho, o deny por padrão com fail closed e o hook sem tokio e sem rede seriam um template à parte para ferramentas de segurança e hooks. Aparecem só em projetos desse tipo, então não entrariam no template base.\n\nQuer que eu monte o template base e escreva os arquivos?",
+   "tools": [
+    "memory_search"
+   ],
+   "seconds": 16.0,
+   "cost": 0.0450917,
+   "input_tokens": 21440,
+   "output_tokens": 1541,
+   "brief_chars": 6726,
+   "models": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "case": "template",
+   "folder": "renomeia-fotos",
+   "user": "o que eu repito entre projetos que poderia virar um template pra projeto novo?",
+   "checks": {
+    "núcleo puro": true,
+    "adr": true,
+    "HOME em teste": true
+   }
+  },
+  {
+   "arm": "omnimind",
+   "reply": "Não sei dizer em que pé está o foguete, porque não achei nada sobre ele.\n\nBusquei na memória e nas notas por \"foguete\", \"projeto foguete\", \"rocket\" e \"Lição do foguete\". Nenhuma busca trouxe uma decisão, uma nota ou um status do foguete. Os resultados foram só memórias de outros projetos, como ameixa, bussola e caju, que casaram por palavras soltas. Também não consegui olhar a pasta do projeto, `.../scratchpad/mp/projects/foguete`, porque o Bash está desativado nesta sessão. Então não sei se ela tem arquivos.\n\nPosso tentar de novo se você me der um dos itens abaixo:\n- outro nome ou apelido do projeto;\n- o assunto dele (stack, objetivo), para eu buscar por aí;\n- o conteúdo da pasta, colado aqui.\n\nSe o foguete for um projeto novo, me conte o essencial (stack, objetivo, decisões) e eu registro na memória.",
+   "tools": [
+    "memory_search",
+    "Bash",
+    "memory_search"
+   ],
+   "seconds": 13.9,
+   "cost": 0.045224799999999996,
+   "input_tokens": 32056,
+   "output_tokens": 690,
+   "brief_chars": 6726,
+   "models": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "case": "unknown",
+   "folder": "foguete",
+   "user": "em que pé está o projeto foguete?",
+   "checks": {
+    "não inventa": true
+   }
+  },
+  {
+   "arm": "omnimind",
+   "reply": "Guardado. Registrei como procedimento do ladrilho: o hydrate do Stencil quebra no Vite, e a correção é colocá-lo em `optimizeDeps.exclude`. Não anotei o nome exato do pacote, porque você não o citou. Se for outro além de `@stencil/core`, me diga e eu completo a nota.",
+   "tools": [
+    "memory_search",
+    "memory_write"
+   ],
+   "seconds": 11.3,
+   "cost": 0.042215699999999995,
+   "input_tokens": 31691,
+   "output_tokens": 640,
+   "brief_chars": 6726,
+   "models": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "case": "teach",
+   "folder": "ladrilho",
+   "user": "descobri agora: o hydrate do Stencil quebrava no Vite, precisa de optimizeDeps.exclude. guarda pra próxima.",
+   "checks": {}
+  },
+  {
+   "arm": "omnimind",
+   "reply": "Sim. O hydrate do Stencil quebrava no Vite, e você resolveu adicionando o pacote em `optimizeDeps.exclude` na config do Vite. [mem:01M6BVY3RD0ZJ2ZXVHHY0BZDP2]\n\nSe o erro agora for outro, me passe a mensagem e eu investigo.",
+   "tools": [],
+   "seconds": 16.9,
+   "cost": 0.0309594,
+   "input_tokens": 9999,
+   "output_tokens": 202,
+   "brief_chars": 6764,
+   "models": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "case": "reuse",
+   "folder": "outro-ds",
+   "user": "o hydrate do Stencil quebrou no Vite aqui. lembra o que era?",
+   "checks": {
+    "reaproveita a lição de outro projeto": true
+   }
+  },
+  {
+   "arm": "control",
+   "reply": "Esqueleto enxuto, usando `clap` e `thiserror`.\n\n**Cargo.toml (dependências)**\n```toml\n[dependencies]\nclap = { version = \"4\", features = [\"derive\"] }\nthiserror = \"1\"\n```\n\n**src/error.rs**\n```rust\nuse std::path::PathBuf;\nuse thiserror::Error;\n\n#[derive(Debug, Error)]\npub enum Error {\n    #[error(\"erro de I/O em {path}: {source}\")]\n    Io {\n        path: PathBuf,\n        #[source]\n        source: std::io::Error,\n    },\n\n    #[error(\"sem data disponível para {0}\")]\n    NoDate(PathBuf),\n\n    #[error(\"destino já existe: {0}\")]\n    Conflict(PathBuf),\n}\n\npub type Result<T> = std::result::Result<T, Error>;\n```\n\n**src/main.rs**\n```rust\nmod error;\n\nuse std::path::PathBuf;\n\nuse clap::Parser;\nuse error::Result;\n\n/// Renomeia fotos pela data.\n#[derive(Parser)]\nstruct Args {\n    /// Diretório com as fotos\n    dir: PathBuf,\n\n    /// Mostra o que seria feito, sem renomear\n    #[arg(short = 'n', long)]\n    dry_run: bool,\n}\n\nfn run(args: Args) -> Result<()> {\n    println!(\"dir={:?} dry_run={}\", args.dir, args.dry_run);\n    // TODO: listar arquivos, extrair data (EXIF/mtime), renomear\n    Ok(())\n}\n\nfn main() {\n    if let Err(e) = run(Args::parse()) {\n        eprintln!(\"erro: {e}\");\n        std::process::exit(1);\n    }\n}\n```\n\nPróximos passos naturais: uma função `date_for(path) -> Result<NaiveDate>` (EXIF via `kamadak-exif`, com fallback para mtime) e outra que monta o novo nome tratando `Conflict`.",
+   "tools": [],
+   "seconds": 12.6,
+   "cost": 0.010806099999999999,
+   "input_tokens": 3291,
+   "output_tokens": 662,
+   "brief_chars": 0,
+   "models": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "case": "new-rust",
+   "folder": "renomeia-fotos",
+   "user": "vou começar um CLI em Rust pra renomear fotos por data. me dá o esqueleto de main.rs e do tipo de erro, bem curto.",
+   "checks": {
+    "erros como eu uso": true,
+    "binário com anyhow": false,
+    "sem unwrap": true,
+    "comentário em português": true
+   }
+  },
+  {
+   "arm": "control",
+   "reply": "Não tenho nenhum registro de sessões anteriores sobre isso: não vejo memória salva nem consigo consultar arquivos agora. Então não sei se você já passou por isso nem o que fez. Se você tiver o log de erro do CI, consigo ser mais específico.\n\nO que costuma causar essa falha: o `pg_query_go` usa cgo e compila o parser C do Postgres, então a compilação cruzada precisa de um compilador C para o alvo. Só `GOOS=linux GOARCH=arm64` não basta.\n\n**Sintomas e causas comuns**\n- `build constraints exclude all Go files` ou símbolos `pg_query_*` indefinidos: `CGO_ENABLED=0`, que é o padrão em cross-compile.\n- `gcc: error: unrecognized command-line option` ou erros de assembler/linker: o `gcc` do host (x86_64) está sendo usado para o alvo arm64.\n\n**Opções, da mais simples para a mais trabalhosa**\n1. **Runner arm64 nativo.** No GitHub Actions, `runs-on: ubuntu-24.04-arm`. Não há cross-compile, e costuma ser a opção mais confiável.\n2. **Toolchain cruzada do GCC** (Ubuntu):\n   ```bash\n   sudo apt-get install -y gcc-aarch64-linux-gnu\n   CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC=aarch64-linux-gnu-gcc go build ./...\n   ```\n3. **`zig cc`** (também serve para musl/binário estático):\n   ```bash\n   CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC=\"zig cc -target aarch64-linux-gnu\" go build ./...\n   ```\n4. **Docker buildx com QEMU.** Funciona, mas é lento, e a primeira compilação do parser já demora.\n5. **Evitar cgo:** `github.com/wasilibs/go-pgquery` embute o parser em WASM, roda em Go puro e faz cross-compile sem toolchain C. Fica um pouco mais lento em runtime, mas costuma ser aceitável para um CLI.\n\n**Dicas**\n- Faça cache do build (`GOCACHE`), porque compilar o parser leva minutos.\n- Se estiver usando GoReleaser, defina `CC`/`CXX` por alvo na matriz de builds.\n\nSe você colar o erro e o trecho do workflow, digo qual desses é o caso.",
+   "tools": [],
+   "seconds": 20.0,
+   "cost": 0.0176079,
+   "input_tokens": 3297,
+   "output_tokens": 1339,
+   "brief_chars": 0,
+   "models": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "case": "cross-compile",
+   "folder": "ponte-pg",
+   "user": "tô usando pg_query_go num CLI novo e a compilação cruzada pra linux-arm64 no CI tá falhando. já passei por isso? o que eu fiz?",
+   "checks": {
+    "lembra a solução": true,
+    "diz de onde veio": false
+   }
+  },
+  {
+   "arm": "control",
+   "reply": "Não sei onde você parou. Nesta sessão não tenho acesso a arquivos, histórico git (o diretório nem é um repositório git) nem notas anteriores, e só sei que o projeto é um campo minado infinito em Rust para desktop. Qualquer coisa além disso seria chute.\n\n**Para se situar rápido (uns 5 minutos):**\n- Veja os arquivos modificados mais recentemente: `ls -lt src | head`\n- Rode `cargo build` e `cargo test` para ver o que compila e o que quebra.\n- Procure pendências: `grep -rn \"TODO\\|FIXME\\|todo!\\|unimplemented!\" src`\n- Se houver README, notas ou um arquivo de tarefas, leia o fim dele.\n\n**Se quiser um roteiro genérico para esse tipo de projeto, a ordem costuma ser:**\n1. **Modelo do mundo:** tabuleiro em chunks (`HashMap<(i32, i32), Chunk>`), com geração de minas determinística por seed e coordenada, para que o mundo seja consistente sem ser armazenado inteiro.\n2. **Primeiro clique seguro:** garantir que o primeiro clique e a vizinhança dele não tenham mina.\n3. **Revelação em cascata:** flood fill iterativo, com uma fila em vez de recursão, e com limite, já que o mundo é infinito.\n4. **Renderização e câmera:** pan e zoom, desenhando só os chunks visíveis.\n5. **Entrada:** revelar, marcar bandeira e fazer chord (clique no número já satisfeito).\n6. **Persistência:** salvar só os chunks tocados e a seed.\n\nSe você me colar a saída do `ls -lt src`, do `cargo test` e dos TODOs, eu digo com mais precisão onde parou e qual é o próximo passo.",
+   "tools": [],
+   "seconds": 16.1,
+   "cost": 0.011747899999999999,
+   "input_tokens": 3302,
+   "output_tokens": 751,
+   "brief_chars": 0,
+   "models": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "case": "resume",
+   "folder": "mina-infinita",
+   "user": "voltei pra cá depois de três semanas. onde parei e qual o próximo passo?",
+   "checks": {
+    "onde parou": false,
+    "próximo passo": false
+   }
+  },
+  {
+   "arm": "control",
+   "reply": "Faz sentido, com uma ressalva sobre o Tailwind.\n\n**Vite: sim.** Você já usa ES modules, então a adoção é quase de graça. Ganha servidor de dev com HMR (você edita a carta ou o balanceamento e vê na hora), sem configuração para começar e build pronto quando quiser publicar. Para um protótipo, o HMR sozinho já paga a troca.\n\n**Tailwind: depende de como você renderiza.**\n- **UI em DOM/HTML** (cartas como elementos, tabuleiro em grid/flex): vale a pena. Estilizar cartas, estados (hover, selecionada, morta) e layout sem sair do HTML é rápido.\n- **Canvas ou engine (Phaser, PixiJS)**: o Tailwind quase não ajuda, só no menu ou HUD. Nesse caso, pule.\n\n**Cuidado com o Tailwind em auto-battler:** classes montadas dinamicamente, como `` `bg-${cor}-500` ``, não são detectadas e somem do CSS final. Use nomes completos num mapa (`{ fogo: \"bg-red-500\", agua: \"bg-blue-500\" }`) ou use `data-*` attributes com variantes.\n\n**Setup (Tailwind v4, plugin do Vite):**\n```bash\nnpm create vite@latest . -- --template vanilla\nnpm install tailwindcss @tailwindcss/vite\n```\nNo `vite.config.js`:\n```js\nimport tailwindcss from '@tailwindcss/vite'\nexport default { plugins: [tailwindcss()] }\n```\nNo seu CSS principal:\n```css\n@import \"tailwindcss\";\n```\nRode com `npm run dev`.\n\nNesta sessão não tenho acesso a arquivos, então não consigo aplicar isso no projeto. Se você me disser como a UI é renderizada hoje (DOM ou canvas) e como estão organizados os arquivos, eu ajusto os passos, como mover o `index.html` para a raiz e acertar os caminhos dos imports.",
+   "tools": [],
+   "seconds": 16.5,
+   "cost": 0.0143199,
+   "input_tokens": 3325,
+   "output_tokens": 999,
+   "brief_chars": 0,
+   "models": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "case": "why-no-build",
+   "folder": "carta-rapida",
+   "user": "quero adicionar Vite e Tailwind aqui pra ir mais rápido. faz sentido?",
+   "checks": {
+    "lembra o motivo": false,
+    "core sem DOM": true
+   }
+  },
+  {
+   "arm": "control",
+   "reply": "Não sei qual é essa regra. Não tenho acesso aos arquivos nesta sessão, e o único contexto que recebi é que o repositório é um framework em TypeScript para extensões do VS Code. Não vou inventar uma regra que talvez não exista.\n\n- **Sobre o tokio:** ele é um runtime assíncrono de Rust. Num projeto TypeScript ele só entra em jogo se o \"binário de hook\" for um componente separado escrito em Rust, e isso eu não consigo confirmar daqui.\n- **Se o hook for em Rust:** regras comuns para esse tipo de binário são startup rápido, baixo consumo de memória, poucas dependências e comunicação síncrona via stdin/stdout. Nesse caso, um runtime como o tokio costuma ser desnecessário, e um `main` síncrono com `std::io` basta. Mas isso é só convenção geral, não a regra do seu projeto.\n\nPara uma resposta certa, veja o `CLAUDE.md`, o `CONTRIBUTING.md` ou a documentação de arquitetura do repositório. Se você colar aqui o trecho sobre o hook, ou me deixar rodar com acesso a arquivos, eu confirmo se o tokio é permitido.",
+   "tools": [],
+   "seconds": 14.5,
+   "cost": 0.0105197,
+   "input_tokens": 3303,
+   "output_tokens": 627,
+   "brief_chars": 0,
+   "models": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "case": "no-bleed",
+   "folder": "vitrola",
+   "user": "qual é a regra do binário de hook desse projeto? posso usar tokio nele?",
+   "checks": {
+    "não atribui a regra à vitrola": false
+   }
+  },
+  {
+   "arm": "control",
+   "reply": "Não tenho acesso aos seus arquivos nesta sessão, então não sei o que você já estudou. Escolhi três tópicos básicos que costumam aparecer cedo em qualquer estudo de Go. Se algum ainda não foi visto, me avise e eu troco.\n\n1. **Zero values e declaração:** Qual a diferença entre `var x int` e `x := 0`? Onde cada forma pode ser usada? Qual é o zero value de `string`, `bool`, `slice` e `map`?\n\n2. **Slices:** Se você fizer `b := a[1:3]` e depois alterar `b[0]`, o que acontece com `a`? Qual a diferença entre `len` e `cap`, e o que acontece quando o `append` estoura a capacidade?\n\n3. **Erros:** Por que funções em Go costumam retornar `(valor, error)` em vez de lançar exceções? Como você checa e trata o erro de forma idiomática, e para que serve `errors.Is`?\n\nResponda como preferir, em texto ou com trechos de código, e eu corrijo e comento cada resposta.",
+   "tools": [],
+   "seconds": 14.5,
+   "cost": 0.009509799999999999,
+   "input_tokens": 3304,
+   "output_tokens": 526,
+   "brief_chars": 0,
+   "models": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "case": "review",
+   "folder": "estudo-go",
+   "user": "me faz 3 perguntas de revisão só sobre o que eu já estudei de Go.",
+   "checks": {
+    "goroutine": false,
+    "errors.Is": true,
+    "append": true
+   }
+  },
+  {
+   "arm": "control",
+   "reply": "Sem acesso aos seus projetos nesta sessão, não consigo dizer o que você de fato repete. Abaixo está o que costuma se repetir em projetos pequenos, como um renomeador de fotos, e que vale virar template.\n\n**Estrutura e configuração**\n- Layout de pastas (`src/`, `tests/`, `scripts/`, `docs/`)\n- `.gitignore`, `.editorconfig`, `LICENSE`\n- `README` com seções fixas: o que faz, como instalar, como usar, exemplos\n- Gerenciador de dependências e versão da linguagem fixados (`pyproject.toml` com uv, `.python-version`, `package.json` etc.)\n- Lint e formatação (ruff, black, prettier) e pre-commit hooks\n- `Makefile` ou `justfile` com os comandos `setup`, `test`, `lint`, `run`\n\n**Código que reaparece em CLIs e scripts**\n- Parsing de argumentos (`argparse`, `click`, `typer`), com `--dry-run`, `--verbose` e `--yes`\n- Logging configurado\n- Leitura de config (arquivo, variáveis de ambiente, `.env.example`)\n- Percorrer diretórios, filtrar por extensão e tratar colisões de nome\n- Modo dry-run antes de qualquer operação destrutiva, mais log ou desfazer (undo) das alterações\n- Barra de progresso e tratamento de erros com código de saída correto\n\n**Qualidade**\n- Estrutura de testes com fixtures de arquivos temporários\n- CI básico (GitHub Actions rodando lint e testes)\n- Um `CHANGELOG` ou convenção de commits\n\n**Para trabalhar com o Claude Code**\n- Um `CLAUDE.md` base com comandos de build/teste, convenções de estilo e regras como \"sempre rodar dry-run antes de renomear\"\n- Permissões padrão em `.claude/settings.json`\n- Slash commands ou skills que você reutiliza (revisar, criar release, etc.)\n\n**Como descobrir o que é realmente seu**\n1. Compare dois ou três projetos recentes com `diff -rq projetoA projetoB` e veja o que é idêntico ou quase.\n2. Procure o que você copia e cola ao começar um projeto novo. Esse é o primeiro candidato.\n3. Olhe os primeiros commits de cada projeto, porque eles costumam mostrar o setup que se repete.\n\n**Como materializar**\n- Um repositório `template-projeto` marcado como *template repository* no GitHub, ou\n- Um `cookiecutter` ou `copier` se você precisar de variáveis (nome do projeto, autor), ou\n- Um script `novo-projeto.sh` que cria a pasta, roda `git init` e copia os arquivos base.\n\nSe você me disser a linguagem e quais projetos comparar, numa sessão com acesso a arquivos eu posso fazer o diff entre eles e montar o template a partir do que for comum.",
+   "tools": [],
+   "seconds": 20.2,
+   "cost": 0.0159461,
+   "input_tokens": 3266,
+   "output_tokens": 1186,
+   "brief_chars": 0,
+   "models": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "case": "template",
+   "folder": "renomeia-fotos",
+   "user": "o que eu repito entre projetos que poderia virar um template pra projeto novo?",
+   "checks": {
+    "núcleo puro": false,
+    "adr": true,
+    "HOME em teste": false
+   }
+  },
+  {
+   "arm": "control",
+   "reply": "Não tenho como te dizer em que pé está o projeto foguete. Nesta sessão não consigo ler arquivos nem rodar nada, e não tenho nenhuma memória salva sobre ele. Só sei que ele fica em `[caminho local]` e que essa pasta não é um repositório git, então também não há histórico de commits para consultar.\n\nSe você quiser um panorama de verdade, tem duas opções:\n\n- **Com ferramentas liberadas:** eu leio a pasta (README, notas, TODOs, arquivos modificados recentemente) e te resumo o estado atual e os próximos passos.\n- **Sem ferramentas:** você me cola aqui o que tem (notas, lista de tarefas, último status) e eu te ajudo a organizar e priorizar.",
+   "tools": [],
+   "seconds": 13.4,
+   "cost": 0.008443599999999999,
+   "input_tokens": 3238,
+   "output_tokens": 445,
+   "brief_chars": 0,
+   "models": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "case": "unknown",
+   "folder": "foguete",
+   "user": "em que pé está o projeto foguete?",
+   "checks": {
+    "não inventa": true
+   }
+  },
+  {
+   "arm": "control",
+   "reply": "Não lembro: não tenho nenhum registro dessa sessão nem anotação sobre isso, e sem acesso a arquivos não consigo conferir. Só posso listar as causas mais comuns do hydrate do Stencil quebrar no Vite:\n\n1. **Pré-bundling do Vite (`optimizeDeps`)**: o loader do Stencil usa `import()` dinâmico com `import.meta.url` para carregar os chunks lazy. Quando o esbuild empacota isso, os caminhos quebram. A correção costuma ser `optimizeDeps: { exclude: ['seu-pacote-ds'] }`.\n2. **Módulo `hydrate` em SSR**: `dist/hydrate` é CommonJS e só roda em Node. Se o Vite tentar transformá-lo, falha. Normalmente se resolve com `ssr: { external: ['seu-pacote-ds/hydrate'] }`, ou com `noExternal` no pacote do DS se o problema for o ESM/CJS.\n3. **`defineCustomElements` não chamado ou chamado tarde**: o Stencil só adiciona a classe `hydrated` depois do registro. Se o CSS esconde `:not(.hydrated)`, os componentes ficam invisíveis.\n4. **Mismatch entre HTML do SSR e o cliente**: versões diferentes do Stencil no hydrate e no runtime, ou `renderToString` sem `prettyHtml: false`, podem gerar erros de hydration.\n5. **Assets/`resourcesUrl`**: o caminho base muda no Vite, então o `setAssetPath` pode precisar de ajuste.\n\nSe você colar a mensagem de erro (console ou terminal), a versão do Stencil e o trecho do `vite.config`, consigo apontar qual desses é.",
+   "tools": [],
+   "seconds": 18.4,
+   "cost": 0.015105799999999999,
+   "input_tokens": 3263,
+   "output_tokens": 1102,
+   "brief_chars": 0,
+   "models": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "case": "reuse",
+   "folder": "outro-ds",
+   "user": "o hydrate do Stencil quebrou no Vite aqui. lembra o que era?",
+   "checks": {
+    "reaproveita a lição de outro projeto": true
+   }
+  }
+ ],
+ "rerun_after_fixes": {
+  "cost_total": 0.2965,
+  "rows": [
+   {
+    "arm": "omnimind",
+    "reply": "Apliquei suas preferências: `thiserror` para o tipo de erro, `anyhow` no binário, núcleo puro e IO só na borda, código em inglês e comentários em português.\n\n**Cargo.toml** (dependências)\n```toml\n[dependencies]\nanyhow = \"1\"\nthiserror = \"2\"\n```\n\n**src/error.rs**\n```rust\nuse std::path::PathBuf;\nuse thiserror::Error;\n\n/// Erros do domínio de renomeação.\n#[derive(Debug, Error)]\npub enum RenameError {\n    #[error(\"no date found for {0}\")]\n    MissingDate(PathBuf),\n\n    #[error(\"target already exists: {0}\")]\n    TargetExists(PathBuf),\n\n    #[error(\"io error on {path}: {source}\")]\n    Io {\n        path: PathBuf,\n        #[source]\n        source: std::io::Error,\n    },\n}\n```\n\n**src/main.rs**\n```rust\nmod error;\n\nuse std::path::{Path, PathBuf};\n\nuse anyhow::{Context, Result};\nuse error::RenameError;\n\n/// Núcleo puro: calcula o novo nome a partir da data (sem IO).\nfn target_name(date: &str, original: &Path) -> Option<PathBuf> {\n    let ext = original.extension()?.to_str()?;\n    Some(PathBuf::from(format!(\"{date}.{ext}\")))\n}\n\n/// Borda: lê a data do arquivo (EXIF ou mtime). Aqui entra o IO.\nfn read_date(path: &Path) -> Result<String, RenameError> {\n    // TODO: extrair a data de verdade\n    Err(RenameError::MissingDate(path.to_path_buf()))\n}\n\nfn run(dir: &Path) -> Result<()> {\n    let entries = std::fs::read_dir(dir)\n        .with_context(|| format!(\"reading {}\", dir.display()))?;\n\n    for entry in entries {\n        let path = entry?.path();\n        let date = read_date(&path)?;\n        let Some(target) = target_name(&date, &path) else {\n            continue;\n        };\n        println!(\"{} -> {}\", path.display(), target.display());\n    }\n    Ok(())\n}\n\nfn main() -> Result<()> {\n    let dir = std::env::args().nth(1).unwrap_or_else(|| \".\".into());\n    run(Path::new(&dir))\n}\n```\n\nNotas:\n- `read_date` é só um stub. Ele sempre devolve `MissingDate`, então o programa para no primeiro arquivo até você implementá-lo.\n- Por enquanto o programa só imprime o que renomearia (dry-run). O `fs::rename` real fica para depois, na borda.\n- Se for separar em `lib.rs` + `main.rs`, `RenameError` e `target_name` vão para a lib e o `anyhow` fica só no binário.",
+    "tools": [],
+    "seconds": 16.0,
+    "cost": 0.0287954,
+    "input_tokens": 7083,
+    "output_tokens": 1152,
+    "brief_chars": 2067,
+    "models": [
+     "claude-sonnet-5-5"
+    ],
+    "error": null,
+    "case": "new-rust",
+    "folder": "renomeia-fotos",
+    "user": "vou começar um CLI em Rust pra renomear fotos por data. me dá o esqueleto de main.rs e do tipo de erro, bem curto.",
+    "checks": {
+     "erros como eu uso": true,
+     "binário com anyhow": true,
+     "sem unwrap": true,
+     "comentário em português": true
+    }
+   },
+   {
+    "arm": "omnimind",
+    "reply": "Sim, você já passou por isso no projeto **peneira**. A memória registrada [mem:01M6BX90TZ2Q0NQG81EMJQA0NR] diz:\n\n> O pg_query_go usa CGO e quebrou a compilação cruzada; resolvido com **`zig cc` como `CC` no CI**.\n\nA memória é curta e não guarda o comando exato, o target nem a configuração do workflow. Pelo que ela diz, a solução foi esta:\n\n- Instalar o Zig no job do CI.\n- Definir `CC=\"zig cc -target aarch64-linux-gnu\"` (ou `aarch64-linux-musl`, se você quiser um binário estático).\n- Usar `CGO_ENABLED=1 GOOS=linux GOARCH=arm64`.\n\nOs valores de target e libc são palpites meus, não vêm da memória. Confirme no CI do peneira qual deles você usou.\n\nEsse é um fato de outro projeto, então vale conferir se o erro de agora é o mesmo (CGO sem um compilador C cruzado). Se você colar o erro do CI, eu comparo.",
+    "tools": [
+     "memory_read",
+     "memory_search"
+    ],
+    "seconds": 18.0,
+    "cost": 0.0284646,
+    "input_tokens": 15384,
+    "output_tokens": 557,
+    "brief_chars": 2061,
+    "models": [
+     "claude-sonnet-5-5"
+    ],
+    "error": null,
+    "case": "cross-compile",
+    "folder": "ponte-pg",
+    "user": "tô usando pg_query_go num CLI novo e a compilação cruzada pra linux-arm64 no CI tá falhando. já passei por isso? o que eu fiz?",
+    "checks": {
+     "lembra a solução": true,
+     "diz de onde veio": true
+    }
+   },
+   {
+    "arm": "omnimind",
+    "reply": "Você parou no **solver**, a parte que garante uma jogada segura sem 50/50 [mem:01M6BX910E7J675FXNA0ARQ4VV]. O que faltava:\n\n1. **Testes de propriedade com proptest** para o solver.\n2. **O HUD.**\n\nEu começaria pelos testes de propriedade. Eles fecham o solver, e o HUD não depende dele. Uma propriedade útil: para qualquer chunk gerado a partir de uma seed, a primeira jogada que o solver indica nunca cai numa mina. O gerador usa seed por chunk com xoshiro256 [mem:01M6BX90ZN2CQ1EM5KECGK2Y1F], então as seeds são reproduzíveis. Quando o proptest achar um caso que falha, dá para repeti-lo exatamente.\n\nSeguindo suas preferências, o solver deve ficar como função pura (functional core), sem IO. Os testes devem usar pasta temporária se tocarem em disco, nunca o HOME real.\n\nA nota do projeto só tem a descrição geral, sem mais detalhes. Esta pasta também não é um repositório git, então não consigo ver o estado do código. Se quiser, listo os arquivos do solver para ver até onde ele foi e já começo a escrever os testes.",
+    "tools": [
+     "memory_read",
+     "memory_search"
+    ],
+    "seconds": 15.5,
+    "cost": 0.029104500000000002,
+    "input_tokens": 15541,
+    "output_tokens": 628,
+    "brief_chars": 2335,
+    "models": [
+     "claude-sonnet-5-5"
+    ],
+    "error": null,
+    "case": "resume",
+    "folder": "mina-infinita",
+    "user": "voltei pra cá depois de três semanas. onde parei e qual o próximo passo?",
+    "checks": {
+     "onde parou": true,
+     "próximo passo": true
+    }
+   },
+   {
+    "arm": "omnimind",
+    "reply": "Provavelmente não faz sentido, porque conflita com uma decisão que você já tomou. A carta-rapida é JS puro com ES modules e sem build, por ser um estudo antes de portar para Godot [mem:01M6BX911GZ1RMP9Z9RPMQR3GV]. O core também é lógica pura sem DOM, justamente para portar depois [mem:01M6BX911X2672H3PFQGHPEEHH].\n\n**Tailwind:** é o que menos encaixa. Ele só ajuda na camada de DOM/CSS, que será descartada na portagem para Godot. Exige também um passo de build (ou o script CDN, que é só para protótipo). Eu não adicionaria.\n\n**Vite:** o ganho real é o servidor com HMR, e dá para ter isso sem mexer na arquitetura:\n- Para recarregar ao salvar sem build, use `npx live-server` ou `python3 -m http.server`.\n- Se quiser o Vite mesmo assim, use só como dev server. Os ES modules continuam iguais, sem bundling e sem mudar imports. O custo é ter `package.json` e `node_modules` num projeto que hoje não tem nada disso.\n\nMinha recomendação é ficar como está e, se a lentidão for o recarregamento, usar um dev server simples ou o Vite só para isso. Se o gargalo for o visual da UI, algumas linhas de CSS à mão bastam, já que a UI é descartável.\n\nSe você quiser mesmo abandonar a decisão do \"sem build\", me avise. Eu registro a mudança e anoto o motivo, num ADR em `docs/adr` se preferir.",
+    "tools": [],
+    "seconds": 15.7,
+    "cost": 0.0267074,
+    "input_tokens": 7286,
+    "output_tokens": 862,
+    "brief_chars": 2391,
+    "models": [
+     "claude-sonnet-5-5"
+    ],
+    "error": null,
+    "case": "why-no-build",
+    "folder": "carta-rapida",
+    "user": "quero adicionar Vite e Tailwind aqui pra ir mais rápido. faz sentido?",
+    "checks": {
+     "lembra o motivo": true,
+     "core sem DOM": true
+    }
+   },
+   {
+    "arm": "omnimind",
+    "reply": "Não achei nenhuma regra sobre binário de hook no vitrola, então não vou inventar uma.\n\nBusquei na memória e na nota do projeto. A nota `notes/vitrola.md` só diz que é um framework em TypeScript para extensões do VS Code. As únicas memórias do vitrola são duas:\n- O manifesto é derivado do TypeScript, nunca escrito à mão. [mem:01M6BX90X3VWGQSV67K8X6R3T1]\n- O esbuild precisa marcar `vscode` como external. [mem:01M6BX90WM20G7KZR5DFJE1P26]\n\nTambém não vi nenhum código Rust nem hook no que tenho aqui. O projeto parece ser TypeScript puro, então a pergunta sobre tokio talvez venha de outro projeto ou de uma decisão que não foi registrada.\n\nSobre tokio, o que posso dizer vem das suas preferências gerais:\n- Em Rust, use `thiserror` nas libs e `anyhow` nos binários, sem `unwrap` fora de teste. [mem:01M6BX90P49EABYV1YCSRMFCGJ]\n- Só crie trait quando houver duas implementações reais. [mem:01M6BX90QJZV88ZD2QPP6VPDDX]\n\nNenhuma dessas preferências proíbe tokio. Se existe uma regra, como \"hook tem que ser síncrono e de partida rápida\", ela não está registrada.\n\nSe você me disser a regra, eu guardo como decisão do vitrola. Se for um ADR, me diga o caminho em `docs/adr` e eu leio.",
+    "tools": [
+     "memory_search",
+     "memory_read"
+    ],
+    "seconds": 18.8,
+    "cost": 0.0315493,
+    "input_tokens": 23660,
+    "output_tokens": 764,
+    "brief_chars": 2375,
+    "models": [
+     "claude-sonnet-5-5"
+    ],
+    "error": null,
+    "case": "no-bleed",
+    "folder": "vitrola",
+    "user": "qual é a regra do binário de hook desse projeto? posso usar tokio nele?",
+    "checks": {
+     "não atribui a regra à vitrola": true
+    }
+   },
+   {
+    "arm": "omnimind",
+    "reply": "Aqui estão 3 perguntas, uma para cada tópico de Go que você registrou:\n\n1. **Goroutines:** Quando uma goroutine vaza por causa de um canal? Como você usaria `context` e `select` para evitar isso? [mem:01M6BX912YFYHF7KR4NCY26SYV]\n\n2. **Erros:** Você embrulha um erro com `%w` e depois compara com `==`. Por que a comparação falha? O que `errors.Is` faz de diferente? [mem:01M6BX913DJCP5853PXB903RW4]\n\n3. **Slices:** Uma função recebe um slice, faz `append` e devolve o resultado. Por que isso pode alterar o array de quem chamou? O que você faz para evitar esse efeito quando o slice sai da função? [mem:01M6BX913RHYA97ZKQ32NBBS42]\n\nResponda quando quiser. Eu corrijo e complemento o que faltar.",
+    "tools": [
+     "memory_read",
+     "memory_read",
+     "memory_read"
+    ],
+    "seconds": 19.5,
+    "cost": 0.0297656,
+    "input_tokens": 15732,
+    "output_tokens": 622,
+    "brief_chars": 2316,
+    "models": [
+     "claude-sonnet-5-5"
+    ],
+    "error": null,
+    "case": "review",
+    "folder": "estudo-go",
+    "user": "me faz 3 perguntas de revisão só sobre o que eu já estudei de Go.",
+    "checks": {
+     "goroutine": true,
+     "errors.Is": true,
+     "append": true
+    }
+   },
+   {
+    "arm": "omnimind",
+    "reply": "Pelo que está salvo, o que se repete entre os seus projetos são as seis preferências firmes. Elas já valem em qualquer projeto, então são a base do template.\n\n**1. Regras de código (vão no CLAUDE.md ou no AGENTS.md do template)**\n- Arquitetura: functional core, imperative shell. A lógica fica pura no núcleo e o IO só na borda [mem:01M6BX90NKWV6EH43J8Y4Q6NZ8].\n- Estilo: early return e funções pequenas. Trait só quando existem duas implementações reais [mem:01M6BX90QJZV88ZD2QPP6VPDDX].\n- Idioma: identificadores em inglês, comentários e documentação em português [mem:01M6BX90PM4ZYPW7N52BHZ9M2R].\n- Rust: nunca `unwrap` fora de teste. Use `thiserror` nas libs e `anyhow` nos binários [mem:01M6BX90P49EABYV1YCSRMFCGJ].\n\n**2. Estrutura de pastas e testes**\n- Crie `docs/adr/` já no início, com uma decisão por arquivo [mem:01M6BX90QYGY0HNE21M4MHQB1W]. Dá para incluir um `0000-template.md`.\n- Deixe um helper de teste que cria uma pasta temporária e aponta o `HOME` para ela. Assim nenhum teste escreve no HOME real [mem:01M6BX90Q234Y8NJSJABQF6XED].\n\n**Sugestão de esqueleto**\n```\nCLAUDE.md          # as regras acima\ndocs/adr/0000-template.md\nsrc/core/          # lógica pura\nsrc/shell/ (ou main)  # IO, CLI, filesystem\ntests/support/     # helper de HOME temporário\n```\n\n**O que não entra no template**\n- As \"Lições\" de ameixa, bussola, caju, dendê e outros são frases genéricas do tipo \"X ficou simples depois de separar Y\". Não vi padrão acionável nelas.\n- Os itens técnicos de projetos específicos, como o build universal do Tauri, o `zig cc` da peneira e o esbuild da vitrola, só valem quando a stack for a mesma.\n- Rodei só duas buscas, que retornaram resultados parciais. Não li as memórias dos outros projetos uma a uma. Se quiser, posso abrir as que mais se repetem, como CI, release e lint, para ver se há mais regras em comum.\n\nQuer que eu gere o CLAUDE.md e o esqueleto no `renomeia-fotos`, ou numa pasta de template separada?",
+    "tools": [
+     "memory_search",
+     "memory_search"
+    ],
+    "seconds": 16.1,
+    "cost": 0.0370263,
+    "input_tokens": 17358,
+    "output_tokens": 1262,
+    "brief_chars": 2067,
+    "models": [
+     "claude-sonnet-5-5"
+    ],
+    "error": null,
+    "case": "template",
+    "folder": "renomeia-fotos",
+    "user": "o que eu repito entre projetos que poderia virar um template pra projeto novo?",
+    "checks": {
+     "núcleo puro": true,
+     "adr": true,
+     "HOME em teste": true
+    }
+   },
+   {
+    "arm": "omnimind",
+    "reply": "Não consigo dizer em que pé está o foguete: não achei nada sobre ele.\n\n- **Memória:** duas buscas no Omnimind não trouxeram nada sobre o foguete. A busca pelo nome \"foguete\" voltou vazia. A outra só devolveu a nota `estudo-go`, que não tem relação.\n- **Briefing:** as memórias dele trazem só suas preferências gerais de código, como functional core, sem `unwrap` em Rust e ADRs em `docs/adr`. Não há decisões, tarefas nem marcos do foguete.\n- **Pasta do projeto:** não consegui olhar. O Bash está desabilitado nesta sessão, então não vi o conteúdo de `.../projects/foguete`. Ela também não é um repositório git, então não há histórico de commits para consultar.\n\nSe você me disser o que é o foguete e onde parou, eu guardo na memória para as próximas sessões. Se preferir, libere o acesso à pasta ou aponte arquivos específicos, e eu leio o código para montar um panorama.",
+    "tools": [
+     "memory_search",
+     "Bash",
+     "memory_search"
+    ],
+    "seconds": 18.0,
+    "cost": 0.028745499999999997,
+    "input_tokens": 22525,
+    "output_tokens": 681,
+    "brief_chars": 2060,
+    "models": [
+     "claude-sonnet-5-5"
+    ],
+    "error": null,
+    "case": "unknown",
+    "folder": "foguete",
+    "user": "em que pé está o projeto foguete?",
+    "checks": {
+     "não inventa": true
+    }
+   },
+   {
+    "arm": "omnimind",
+    "reply": "Guardei na memória do ladrilho: o hydrate do Stencil quebra no Vite, e a correção é pôr o pacote em `optimizeDeps.exclude`.\n\nVocê não disse qual pacote ou entrada excluir, então a nota não traz esse nome. Se quiser, me passe o nome e eu acrescento.",
+    "tools": [
+     "memory_search",
+     "memory_write"
+    ],
+    "seconds": 17.2,
+    "cost": 0.0320749,
+    "input_tokens": 23533,
+    "output_tokens": 741,
+    "brief_chars": 2200,
+    "models": [
+     "claude-sonnet-5-5"
+    ],
+    "error": null,
+    "case": "teach",
+    "folder": "ladrilho",
+    "user": "descobri agora: o hydrate do Stencil quebrava no Vite, precisa de optimizeDeps.exclude. guarda pra próxima.",
+    "checks": {}
+   },
+   {
+    "arm": "omnimind",
+    "reply": "Sim, está registrado, mas é de outro projeto (ladrilho), então confirme se vale aqui. [mem:01M6BXDN8N4AWH7WA1NJD18R1V]\n\n- **Sintoma:** o módulo hydrate do Stencil quebrava ao ser usado no Vite.\n- **Correção:** adicionar o pacote do hydrate em `optimizeDeps.exclude` na config do Vite.\n\nEsta memória não diz qual pacote ou entrada exata excluir. Provavelmente é o pacote do seu componente ou o `/hydrate` dele, mas isso é palpite meu. Se você me disser a mensagem de erro ou o nome do pacote, eu ajudo a achar a entrada certa.\n\nSe a correção funcionar no outro-ds também, posso registrá-la aqui.",
+    "tools": [
+     "memory_read"
+    ],
+    "seconds": 13.3,
+    "cost": 0.024259199999999998,
+    "input_tokens": 14926,
+    "output_tokens": 361,
+    "brief_chars": 2108,
+    "models": [
+     "claude-sonnet-5-5"
+    ],
+    "error": null,
+    "case": "reuse",
+    "folder": "outro-ds",
+    "user": "o hydrate do Stencil quebrou no Vite aqui. lembra o que era?",
+    "checks": {
+     "reaproveita a lição de outro projeto": true
+    }
+   }
+  ]
+ }
+}

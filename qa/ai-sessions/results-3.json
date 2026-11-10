@@ -1,0 +1,94 @@
+{
+ "spent": 0.1503225,
+ "rows": [
+  {
+   "arm": "A",
+   "session": "s1-http",
+   "cost": 0.0313,
+   "turns": 2,
+   "checks": {
+    "sync_http": false
+   },
+   "answer": "Não encontrei nada sobre o Cuscuz na memória, então usei `reqwest` e `tokio`, que são as escolhas comuns.\n\n```rust\nuse reqwest::Error;\n\n/// Baixa o conteúdo de uma URL como bytes.\npub async fn baixar(url: &str) -> Result<Vec<u8>, Error> {\n    let resp = reqwest::get(url).await?.error_for_status()?;\n    Ok(resp.bytes().await?.to_vec())\n}\n```\n\n`Cargo.toml`:\n\n```toml\nreqwest = \"0.12\"\ntokio = { version = \"1\", features = [\"full\"] }\n```\n\nSe quiser texto em vez de bytes, troque o último passo por `resp.text().await`. Se o Cuscuz usar outro cliente HTTP, como `ureq` ou `hyper`, é só avisar que eu adap",
+   "error": null
+  },
+  {
+   "arm": "A",
+   "session": "s2-correct-http",
+   "cost": 0.0192,
+   "turns": 3,
+   "checks": {},
+   "answer": "Anotado. No Cuscuz o código será síncrono, sem tokio nem async, e o HTTP usará o crate `ureq`. Vou seguir isso em todo código do Cuscuz.",
+   "error": null
+  },
+  {
+   "arm": "A",
+   "session": "s3-deploy",
+   "cost": 0.018,
+   "turns": 4,
+   "checks": {
+    "deploy": false
+   },
+   "answer": "Não encontrei nada sobre a Rota Certa na sua memória do Várzea. Busquei \"Rota Certa\", \"deploy\" e \"publicar/release/produção\", em português e em inglês. A memória só tem 1 item, que é sobre o Cuscuz, e não há nenhuma nota indexada. Por isso não tenho um procedimento de deploy registrado.\n\nTambém não vou inventar passos. Posso tentar outro caminho:\n\n- **Procurar no repositório.** Este diretório é `rival-second-brain`. Se a Rota Certa for outro projeto, me diga onde ele fica. Posso ler o README, o CI, o Dockerfile e os scripts de deploy.\n- **Você me descreve o fluxo.** Por exemplo, a plataforma (",
+   "error": null
+  },
+  {
+   "arm": "A",
+   "session": "s4-correct-deploy",
+   "cost": 0.0288,
+   "turns": 5,
+   "checks": {},
+   "answer": "Guardei as duas coisas no Várzea:\n\n- **Deploy da Rota Certa** [mem:01M6ACFS4ABEA9EDMM5H32TWPH]: sempre em duas etapas. Primeiro a migração do banco, depois a aplicação. Nunca direto.\n- **Mensagens de commit** [mem:01M6ACFTN3243BDH368X26RNQM]: formato `tipo(escopo): resumo`, em português.\n\nO sistema adicionou automaticamente a tag `project/cuscuz` às duas memórias. Não sei se isso está certo, porque você falou da Rota Certa e de \"aqui\" em geral. Se não for do Cuscuz, ajusto as tags.",
+   "error": null
+  },
+  {
+   "arm": "A",
+   "session": "s5-http2",
+   "cost": 0.0115,
+   "turns": 1,
+   "checks": {
+    "sync_http": true
+   },
+   "answer": "Síncrono, com `ureq`, sem tokio/async (conforme a convenção do Cuscuz):\n\n```rust\n/// Consulta dois endpoints e devolve os corpos.\npub fn buscar_corpos(url_a: &str, url_b: &str) -> Result<(String, String), ureq::Error> {\n    let a = ureq::get(url_a).call()?.into_string()?;\n    let b = ureq::get(url_b).call()?.into_string()?;\n    Ok((a, b))\n}\n```\n\nObservação: `into_string()` retorna `io::Error`, que `ureq::Error` aceita via `From` no ureq 2.x. No ureq 3.x, troque por `.body_mut().read_to_string()?`.",
+   "error": null
+  },
+  {
+   "arm": "A",
+   "session": "s6-deploy2",
+   "cost": 0.015,
+   "turns": 2,
+   "checks": {
+    "deploy": true
+   },
+   "answer": "Pelo que está na memória, o deploy da Rota Certa tem duas etapas [mem:01M6ACFS4ABEA9EDMM5H32TWPH]:\n\n1. **Migração do banco**: rode primeiro e confirme que terminou sem erro.\n2. **Aplicação**: faça o deploy só depois que a migração tiver passado.\n\nNunca faça o deploy direto da aplicação, sem a migração antes.\n\nA memória não tem comandos, ambientes nem checagens extras, como backup ou rollback. Se você tiver um runbook, vale seguir ele dentro dessa ordem.",
+   "error": null
+  },
+  {
+   "arm": "A",
+   "session": "s7-commit",
+   "cost": 0.012,
+   "turns": 1,
+   "checks": {
+    "commit": true
+   },
+   "answer": "Seguindo o formato `tipo(escopo): resumo`, em português [mem:01M6ACFTN3243BDH368X26RNQM]:\n\n```\nfix(frete): corrige cálculo de frete na Rota Certa\n```\n\nSe quiser mais específico, algumas variações:\n\n- `fix(rota-certa): corrige cálculo do valor do frete`\n- `fix(frete): ajusta cálculo de frete da Rota Certa`\n\nSe me disser o que exatamente estava errado (arredondamento, peso, distância, faixa de CEP etc.), deixo o resumo mais preciso.\n\nComo o deploy da Rota Certa é sempre em duas etapas (migração do banco primeiro, depois a aplicação) [mem:01M6ACFS4ABEA9EDMM5H32TWPH], vale lembrar disso se a corre",
+   "error": null
+  },
+  {
+   "arm": "A",
+   "session": "s8-all",
+   "cost": 0.0145,
+   "turns": 1,
+   "checks": {
+    "sync_http": false,
+    "deploy": true
+   },
+   "answer": "```rust\n/// Envia um POST com corpo JSON e devolve o corpo da resposta como texto.\npub fn send_post(url: &str, body: &serde_json::Value) -> Result<String, ureq::Error> {\n    // ureq é síncrono: sem tokio, sem async\n    let response = ureq::post(url).send_json(body)?;\n    Ok(response.into_string()?)\n}\n```\n\nIsso usa `ureq` e `serde_json` como dependências, sem tokio ou async, seguindo sua correção de 2026-10-31 [mem:01M6ACF08V4G8ZM2JHXGFJ294T]. Não compilei nem testei. Também não sei em qual arquivo do Cuscuz ela deve ficar.\n\n**Publicar a Rota Certa** [mem:01M6ACFS4ABEA9EDMM5H32TWPH]:\n1. Rode pr",
+   "error": null
+  }
+ ],
+ "date": "2026-10-31 22:44",
+ "out": "qa/ai-sessions/results-3.json",
+ "journal_tail": "2026-11-01T01:44:04.035535Z 01M6ACEBP3EXT6SMMF13Q4ZEK8 session      start\n2026-11-01T01:44:11.374350Z 01M6ACEJVEYXWFBWJHXJPEQJN9 session      start\n2026-11-01T01:44:11.377192Z 01M6ACEJVH1EKZKD0JEK1PJE70 searched     \n2026-11-01T01:44:17.068832Z 01M6ACERDCVWYMSTH17WRRJVHW session      end\n2026-11-01T01:44:17.076414Z 01M6ACERDMMN70RC2GEB8F0TXM session      start\n2026-11-01T01:44:17.080393Z 01M6ACERDRYY4STTRXPFGPAS5B signal       correction\n2026-11-01T01:44:22.301324Z 01M6ACEXGX3MR7XQ57Y5KQTSWY session      start\n2026-11-01T01:44:22.303701Z 01M6ACEXGZCM5E68BMGZZEDQDF searched     \n2026-11-01T01:44:25.123192Z 01M6ACF0933819A5M8RQDSQV3M wrote       01M6ACF08V4G8ZM2JHXGFJ294T direct\n2026-11-01T01:44:30.431710Z 01M6ACF5EZ6WFDB44FT54RKBF7 session      end\n2026-11-01T01:44:30.442790Z 01M6ACF5FAVFQXP9FSRDSNHC5P session      start\n2026-11-01T01:44:35.685953Z 01M6ACFAK51WBAP2DQF6W71NYA session      start\n2026-11-01T01:44:35.687117Z 01M6ACFAK7TPK44RSH2BT5DVFE searched     \n2026-11-01T01:44:37.960705Z 01M6ACFCT87J0ATMNZJBXJ0W9R searched     \n2026-11-01T01:44:38.086571Z 01M6ACFCY6105G29SC30X18ARJ searched     \n2026-11-01T01:44:42.038555Z 01M6ACFGSPBWZAX63WREMXMAZA session      end\n2026-11-01T01:44:42.062894Z 01M6ACFGTE1S4KWRR59Y52DFR5 session      start\n2026-11-01T01:44:42.081320Z 01M6ACFGV1E7VSPJW0JQARW3R7 signal       correction\n2026-11-01T01:44:47.975410Z 01M6ACFPK72K2G9CECNNW8D3XC session      start\n2026-11-01T01:44:47.977013Z 01M6ACFPK91WWPR5XYBPV86JK0 searched     \n2026-11-01T01:44:47.986400Z 01M6ACFPKJCM860KHKPD52NMSM searched     \n2026-11-01T01:44:50.579225Z 01M6ACFS4KSJN6DK1NCRVWP6S5 wrote       01M6ACFS4ABEA9EDMM5H32TWPH direct\n2026-11-01T01:44:52.138654Z 01M6ACFTNA8ZR2QGRCXHVJEKB1 wrote       01M6ACFTN3243BDH368X26RNQM direct\n2026-11-01T01:44:57.850096Z 01M6ACG07T88X6FWBSWNSZSRSN session      end\n2026-11-01T01:44:57.856062Z 01M6ACG080SVDZJ1PRWDJX7E95 session      start\n2026-11-01T01:45:06.704325Z 01M6ACG8WG58HMYDF5YDM8R2JM session      end\n2026-11-01T01:45:06.711407Z 01M6ACG8WQV5EKHQKDEJ2EKQAT session      start\n2026-11-01T01:45:12.297797Z 01M6ACGEB948SDRJEPNVX4WG6Q session      start\n2026-11-01T01:45:12.298636Z 01M6ACGEBA0GDYZSVSE3Z6W6AQ searched     \n2026-11-01T01:45:17.446607Z 01M6ACGKC684VYJEQBS876ZJC0 session      end\n2026-11-01T01:45:17.451862Z 01M6ACGKCBD2Z1TDHDG4TWT3F3 session      start\n2026-11-01T01:45:27.765260Z 01M6ACGXENJMYSZ04MD2YD9H60 session      end\n2026-11-01T01:45:27.770277Z 01M6ACGXET3CG2WHDJ1Y2BSXQV session      start\n2026-11-01T01:45:41.027787Z 01M6ACHAD3Z3G58E337JZT8MRV session      end\n",
+ "portrait": "project/cuscuz\n  - Em 2026-10-31, a pessoa corrigiu: no Cuscuz tudo é síncrono, sem tokio e sem async. Para HTTP usa-se o crate ureq. A preferência vale para todo código do Cuscuz. (2026-11-01, person) [01M6ACF08V4G8ZM2JHXGFJ294T]\n  - Em 2026-10-31, a pessoa disse que as mensagens de commit seguem o formato tipo(escopo): resumo, escrito em português. (2026-11-01, person) [01M6ACFTN3243BDH368X26RNQM]\n  - Em 2026-10-31, a pessoa corrigiu: o deploy da Rota Certa é sempre em duas etapas, primeiro a migração do banco, depois a aplicação. Nunca deploy direto da aplicação. (2026-11-01, agent) [01M6ACFS4ABEA9EDMM5H32TWPH]\n"
+}

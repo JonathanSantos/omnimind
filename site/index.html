@@ -1,0 +1,718 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Omnimind: suas notas e o que a IA aprende com você, no mesmo lugar</title>
+<meta name="description" content="Omnimind é a memória das suas IAs de código, em arquivos seus. App nativo em Rust, local, sem nuvem. Funciona com Claude Code e GitHub Copilot.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141416" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Omnimind">
+<meta property="og:description" content="Suas notas e o que a IA aprende com você, no mesmo lugar.">
+<meta property="og:type" content="website">
+<link rel="icon" href="images/icon.png" type="image/png">
+<link rel="preload" href="fonts/FamiljenGrotesk.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip" href="#main">Pular para o conteúdo</a>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Omnimind, início">
+      <svg viewBox="0 0 64 64" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3.8" stroke-linecap="round"><path d="M52 10C32 27 32 37 52 54M41 7C32 25 32 39 41 57M32 6V58M23 7C32 25 32 39 23 57M12 10C32 27 32 37 12 54"/></svg>
+      Omnimind
+    </a>
+    <nav aria-label="Seções">
+      <ul>
+        <li><a href="#what">O que é</a></li>
+        <li><a href="#how">Como funciona</a></li>
+        <li><a href="#graph">Grafo</a></li>
+        <li><a href="#architecture">Arquitetura</a></li>
+        <li><a href="#safety">Segurança</a></li>
+        <li><a href="#install">Instalar</a></li>
+        <li><a class="ext" href="https://github.com/JonathanSantos/omnimind">GitHub</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+<section class="hero" id="top" aria-labelledby="hero-title">
+  <div class="wrap">
+    <div>
+      <p class="name"><b>Omnimind</b> <i>versão 0.1</i></p>
+      <h1 id="hero-title">Suas notas e o que a IA aprende com você, no mesmo lugar.</h1>
+      <p class="lead">O Omnimind é a memória das suas IAs de código, em arquivos seus. Ele fica entre a IA e uma pasta do seu computador: entrega o que importa no início da sessão, registra o que você corrige e mostra tudo o que foi gravado, com desfazer.</p>
+      <div class="actions">
+        <a class="btn main" href="https://github.com/JonathanSantos/omnimind/releases/latest">Baixar</a>
+        <a class="btn" href="https://github.com/JonathanSantos/omnimind">Ver o código</a>
+      </div>
+      <ul class="facts" aria-label="Em resumo">
+        <li>100% Rust</li><li>GPU nativa</li><li>local</li><li>sem nuvem</li><li>sem embeddings</li>
+      </ul>
+    </div>
+    <figure>
+      <svg class="cosmos live" viewBox="62 70 640 420" role="img" aria-labelledby="cosmos-t cosmos-d">
+        <title id="cosmos-t">Um universo de memórias</title>
+        <desc id="cosmos-d">Corpos em sete cores, uma por tema, agrupados por assunto e ligados por linhas finas. Uma luz viaja de um corpo ao seguinte, como a IA lendo o cofre.</desc>
+<g class="dust d1"><animateTransform attributeName="transform" type="translate" values="-5 0;5 0;-5 0" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle cx="41.2" cy="310" r="0.9"/><circle cx="81" cy="22.4" r="1.2"/><circle cx="311.6" cy="152.8" r="1"/><circle cx="703" cy="158.1" r="1.2"/><circle cx="240.7" cy="473.1" r="1"/><circle cx="100.5" cy="454.5" r="0.6"/><circle cx="74.9" cy="294.6" r="1.2"/><circle cx="24.1" cy="468.3" r="1"/><circle cx="537.2" cy="188.3" r="0.8"/><circle cx="218.5" cy="252.8" r="0.7"/><circle cx="80" cy="187.2" r="0.5"/><circle cx="542.3" cy="106.9" r="0.7"/><circle cx="327.7" cy="356.8" r="1.1"/><circle cx="622.7" cy="130.2" r="1.1"/><circle cx="696.6" cy="284.6" r="1.2"/><circle cx="488.9" cy="125.7" r="0.7"/><circle cx="602.5" cy="102.8" r="1.2"/><circle cx="732.3" cy="369.2" r="0.6"/><circle cx="68.2" cy="419.3" r="0.7"/><circle cx="224" cy="283.9" r="1"/><circle cx="322.1" cy="217.1" r="0.9"/><circle cx="422.2" cy="306" r="0.8"/><circle cx="12.4" cy="60.1" r="0.7"/><circle cx="418.8" cy="145" r="0.6"/><circle cx="655.7" cy="82" r="1.1"/><circle cx="453.4" cy="299.6" r="1.2"/><circle cx="111" cy="347.6" r="1.1"/><circle cx="718.6" cy="192" r="0.7"/><circle cx="219.5" cy="181.7" r="0.9"/><circle cx="349.9" cy="83.4" r="0.5"/><circle cx="186.8" cy="128.1" r="0.5"/><circle cx="10.5" cy="166.6" r="1.2"/><circle cx="400.6" cy="331.9" r="0.7"/><circle cx="716.6" cy="346" r="0.5"/></g>
+<g class="dust d2"><animateTransform attributeName="transform" type="translate" values="8 0;-8 0;8 0" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle cx="424" cy="111.9" r="0.6"/><circle cx="703.9" cy="445.7" r="0.9"/><circle cx="682.1" cy="21.6" r="1.1"/><circle cx="288.3" cy="119.1" r="0.7"/><circle cx="351.6" cy="389.7" r="0.8"/><circle cx="710.1" cy="145.9" r="0.5"/><circle cx="639.5" cy="219.8" r="1"/><circle cx="489" cy="161.8" r="0.6"/><circle cx="544.8" cy="138.2" r="0.6"/><circle cx="170" cy="73.6" r="0.8"/><circle cx="651" cy="72.3" r="1"/><circle cx="17.6" cy="188.7" r="0.8"/><circle cx="158.8" cy="225.9" r="0.6"/><circle cx="45.1" cy="289.2" r="0.6"/><circle cx="164.3" cy="100.2" r="1"/><circle cx="281.3" cy="29.8" r="0.6"/><circle cx="367.5" cy="311.7" r="1.1"/><circle cx="590.3" cy="145.9" r="1.2"/><circle cx="266.2" cy="207.9" r="0.6"/><circle cx="378.2" cy="401.2" r="1"/><circle cx="738.1" cy="482.7" r="0.6"/><circle cx="281.2" cy="72.3" r="0.7"/><circle cx="79.2" cy="236.9" r="0.8"/><circle cx="521.8" cy="87.6" r="0.5"/><circle cx="130.6" cy="361.3" r="1.2"/><circle cx="294.2" cy="391.1" r="1"/></g>
+<path class="ln cross" pathLength="1" d="M598 297L591.4 226.5M558.8 199.1L479.3 189.5M482.1 157.9L351.9 165.4M332.2 165.7L229.6 178.5M205 219L164.9 277.4M165.7 326.7L325.9 302.2M340.5 380L515 335.5M569 344.2L299.8 180M497.8 161.6L119.9 299.7M185.6 201.2L298.9 411.8" style="--k:7"><animate attributeName="d" values="M598 297L591.4 226.5M558.8 199.1L479.3 189.5M482.1 157.9L351.9 165.4M332.2 165.7L229.6 178.5M205 219L164.9 277.4M165.7 326.7L325.9 302.2M340.5 380L515 335.5M569 344.2L299.8 180M497.8 161.6L119.9 299.7M185.6 201.2L298.9 411.8;M520.7 334.7L564.2 261.3M575.4 229.4L522.5 208.2M549.3 176.8L417.5 166.1M388 163L298.5 162.2M253.3 195.2L170.5 238.7M144.6 281L255.2 284.3M264 361.7L393.9 352.2M439.8 373L374.2 173.9M554.4 182.3L116.4 250M257.1 177.5L211.3 380.9;M598 297L591.4 226.5M558.8 199.1L479.3 189.5M482.1 157.9L351.9 165.4M332.2 165.7L229.6 178.5M205 219L164.9 277.4M165.7 326.7L325.9 302.2M340.5 380L515 335.5M569 344.2L299.8 180M497.8 161.6L119.9 299.7M185.6 201.2L298.9 411.8" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path>
+<path class="ln s1" pathLength="1" d="M515 335.5L569 344.2M569 344.2L598 297M569 344.2L618.4 323.6M618.4 323.6L649.4 375.9M598 297L568.2 345.7" style="--k:0"><animate attributeName="d" values="M515 335.5L569 344.2M569 344.2L598 297M569 344.2L618.4 323.6M618.4 323.6L649.4 375.9M598 297L568.2 345.7;M393.9 352.2L439.8 373M439.8 373L520.7 334.7M439.8 373L496.3 363.3M496.3 363.3L526.5 428.2M520.7 334.7L482 379.4;M515 335.5L569 344.2M569 344.2L598 297M569 344.2L618.4 323.6M618.4 323.6L649.4 375.9M598 297L568.2 345.7" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path>
+<path class="ln s2" pathLength="1" d="M591.4 226.5L600.7 271.7M600.7 271.7L558.8 199.1M600.7 271.7L645.1 247.9M558.8 199.1L592.1 228.2" style="--k:1"><animate attributeName="d" values="M591.4 226.5L600.7 271.7M600.7 271.7L558.8 199.1M600.7 271.7L645.1 247.9M558.8 199.1L592.1 228.2;M564.2 261.3L599.1 315.3M599.1 315.3L575.4 229.4M599.1 315.3L641.1 297.6M575.4 229.4L618.6 268.1;M591.4 226.5L600.7 271.7M600.7 271.7L558.8 199.1M600.7 271.7L645.1 247.9M558.8 199.1L592.1 228.2" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path>
+<path class="ln s3" pathLength="1" d="M479.3 189.5L497.8 161.6M497.8 161.6L482.1 157.9M497.8 161.6L510.5 194.9M497.8 161.6L528.2 143.8M482.1 157.9L520.1 145.4" style="--k:2"><animate attributeName="d" values="M479.3 189.5L497.8 161.6M497.8 161.6L482.1 157.9M497.8 161.6L510.5 194.9M497.8 161.6L528.2 143.8M482.1 157.9L520.1 145.4;M522.5 208.2L554.4 182.3M554.4 182.3L549.3 176.8M554.4 182.3L565.3 219.8M554.4 182.3L583.2 167.5M549.3 176.8L595.8 169.4;M479.3 189.5L497.8 161.6M497.8 161.6L482.1 157.9M497.8 161.6L510.5 194.9M497.8 161.6L528.2 143.8M482.1 157.9L520.1 145.4" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path>
+<path class="ln s4" pathLength="1" d="M351.9 165.4L299.8 180M299.8 180L332.2 165.7M299.8 180L296.7 126.3" style="--k:3"><animate attributeName="d" values="M351.9 165.4L299.8 180M299.8 180L332.2 165.7M299.8 180L296.7 126.3;M417.5 166.1L374.2 173.9M374.2 173.9L388 163M374.2 173.9L374.8 121;M351.9 165.4L299.8 180M299.8 180L332.2 165.7M299.8 180L296.7 126.3" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path>
+<path class="ln s5" pathLength="1" d="M229.6 178.5L185.6 201.2M185.6 201.2L205 219M205 219L153.1 173.6M185.6 201.2L155.9 181.7M205 219L207 172.6" style="--k:4"><animate attributeName="d" values="M229.6 178.5L185.6 201.2M185.6 201.2L205 219M205 219L153.1 173.6M185.6 201.2L155.9 181.7M205 219L207 172.6;M298.5 162.2L257.1 177.5M257.1 177.5L253.3 195.2M253.3 195.2L213.2 146.7M257.1 177.5L230 155.5M253.3 195.2L254 152;M229.6 178.5L185.6 201.2M185.6 201.2L205 219M205 219L153.1 173.6M185.6 201.2L155.9 181.7M205 219L207 172.6" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path>
+<path class="ln s6" pathLength="1" d="M164.9 277.4L119.9 299.7M119.9 299.7L165.7 326.7M164.9 277.4L217.1 268.3M165.7 326.7L193.3 345.5" style="--k:5"><animate attributeName="d" values="M164.9 277.4L119.9 299.7M119.9 299.7L165.7 326.7M164.9 277.4L217.1 268.3M165.7 326.7L193.3 345.5;M170.5 238.7L116.4 250M116.4 250L144.6 281M170.5 238.7L213.5 238.6M144.6 281L183.9 304.8;M164.9 277.4L119.9 299.7M119.9 299.7L165.7 326.7M164.9 277.4L217.1 268.3M165.7 326.7L193.3 345.5" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path>
+<path class="ln s7" pathLength="1" d="M325.9 302.2L298.9 411.8M298.9 411.8L340.5 380M298.9 411.8L322.4 401.4" style="--k:6"><animate attributeName="d" values="M325.9 302.2L298.9 411.8M298.9 411.8L340.5 380M298.9 411.8L322.4 401.4;M255.2 284.3L211.3 380.9M211.3 380.9L264 361.7M211.3 380.9L186.8 370.8;M325.9 302.2L298.9 411.8M298.9 411.8L340.5 380M298.9 411.8L322.4 401.4" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path>
+<g class="hop" style="--i:0"><path class="lit" pathLength="1" d="M515 335.5L569 344.2"><animate attributeName="d" values="M515 335.5L569 344.2;M393.9 352.2L439.8 373;M515 335.5L569 344.2" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark-halo" pathLength="1" d="M515 335.5L569 344.2"><animate attributeName="d" values="M515 335.5L569 344.2;M393.9 352.2L439.8 373;M515 335.5L569 344.2" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark" pathLength="1" d="M515 335.5L569 344.2"><animate attributeName="d" values="M515 335.5L569 344.2;M393.9 352.2L439.8 373;M515 335.5L569 344.2" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path></g>
+<g class="hop" style="--i:1"><path class="lit" pathLength="1" d="M569 344.2L598 297"><animate attributeName="d" values="M569 344.2L598 297;M439.8 373L520.7 334.7;M569 344.2L598 297" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark-halo" pathLength="1" d="M569 344.2L598 297"><animate attributeName="d" values="M569 344.2L598 297;M439.8 373L520.7 334.7;M569 344.2L598 297" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark" pathLength="1" d="M569 344.2L598 297"><animate attributeName="d" values="M569 344.2L598 297;M439.8 373L520.7 334.7;M569 344.2L598 297" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path></g>
+<g class="hop" style="--i:2"><path class="lit" pathLength="1" d="M598 297L591.4 226.5"><animate attributeName="d" values="M598 297L591.4 226.5;M520.7 334.7L564.2 261.3;M598 297L591.4 226.5" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark-halo" pathLength="1" d="M598 297L591.4 226.5"><animate attributeName="d" values="M598 297L591.4 226.5;M520.7 334.7L564.2 261.3;M598 297L591.4 226.5" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark" pathLength="1" d="M598 297L591.4 226.5"><animate attributeName="d" values="M598 297L591.4 226.5;M520.7 334.7L564.2 261.3;M598 297L591.4 226.5" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path></g>
+<g class="hop" style="--i:3"><path class="lit" pathLength="1" d="M591.4 226.5L600.7 271.7"><animate attributeName="d" values="M591.4 226.5L600.7 271.7;M564.2 261.3L599.1 315.3;M591.4 226.5L600.7 271.7" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark-halo" pathLength="1" d="M591.4 226.5L600.7 271.7"><animate attributeName="d" values="M591.4 226.5L600.7 271.7;M564.2 261.3L599.1 315.3;M591.4 226.5L600.7 271.7" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark" pathLength="1" d="M591.4 226.5L600.7 271.7"><animate attributeName="d" values="M591.4 226.5L600.7 271.7;M564.2 261.3L599.1 315.3;M591.4 226.5L600.7 271.7" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path></g>
+<g class="hop" style="--i:4"><path class="lit" pathLength="1" d="M600.7 271.7L558.8 199.1"><animate attributeName="d" values="M600.7 271.7L558.8 199.1;M599.1 315.3L575.4 229.4;M600.7 271.7L558.8 199.1" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark-halo" pathLength="1" d="M600.7 271.7L558.8 199.1"><animate attributeName="d" values="M600.7 271.7L558.8 199.1;M599.1 315.3L575.4 229.4;M600.7 271.7L558.8 199.1" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark" pathLength="1" d="M600.7 271.7L558.8 199.1"><animate attributeName="d" values="M600.7 271.7L558.8 199.1;M599.1 315.3L575.4 229.4;M600.7 271.7L558.8 199.1" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path></g>
+<g class="hop" style="--i:5"><path class="lit" pathLength="1" d="M558.8 199.1L479.3 189.5"><animate attributeName="d" values="M558.8 199.1L479.3 189.5;M575.4 229.4L522.5 208.2;M558.8 199.1L479.3 189.5" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark-halo" pathLength="1" d="M558.8 199.1L479.3 189.5"><animate attributeName="d" values="M558.8 199.1L479.3 189.5;M575.4 229.4L522.5 208.2;M558.8 199.1L479.3 189.5" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark" pathLength="1" d="M558.8 199.1L479.3 189.5"><animate attributeName="d" values="M558.8 199.1L479.3 189.5;M575.4 229.4L522.5 208.2;M558.8 199.1L479.3 189.5" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path></g>
+<g class="hop" style="--i:6"><path class="lit" pathLength="1" d="M479.3 189.5L497.8 161.6"><animate attributeName="d" values="M479.3 189.5L497.8 161.6;M522.5 208.2L554.4 182.3;M479.3 189.5L497.8 161.6" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark-halo" pathLength="1" d="M479.3 189.5L497.8 161.6"><animate attributeName="d" values="M479.3 189.5L497.8 161.6;M522.5 208.2L554.4 182.3;M479.3 189.5L497.8 161.6" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark" pathLength="1" d="M479.3 189.5L497.8 161.6"><animate attributeName="d" values="M479.3 189.5L497.8 161.6;M522.5 208.2L554.4 182.3;M479.3 189.5L497.8 161.6" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path></g>
+<g class="hop" style="--i:7"><path class="lit" pathLength="1" d="M497.8 161.6L482.1 157.9"><animate attributeName="d" values="M497.8 161.6L482.1 157.9;M554.4 182.3L549.3 176.8;M497.8 161.6L482.1 157.9" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark-halo" pathLength="1" d="M497.8 161.6L482.1 157.9"><animate attributeName="d" values="M497.8 161.6L482.1 157.9;M554.4 182.3L549.3 176.8;M497.8 161.6L482.1 157.9" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark" pathLength="1" d="M497.8 161.6L482.1 157.9"><animate attributeName="d" values="M497.8 161.6L482.1 157.9;M554.4 182.3L549.3 176.8;M497.8 161.6L482.1 157.9" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path></g>
+<g class="hop" style="--i:8"><path class="lit" pathLength="1" d="M482.1 157.9L351.9 165.4"><animate attributeName="d" values="M482.1 157.9L351.9 165.4;M549.3 176.8L417.5 166.1;M482.1 157.9L351.9 165.4" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark-halo" pathLength="1" d="M482.1 157.9L351.9 165.4"><animate attributeName="d" values="M482.1 157.9L351.9 165.4;M549.3 176.8L417.5 166.1;M482.1 157.9L351.9 165.4" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark" pathLength="1" d="M482.1 157.9L351.9 165.4"><animate attributeName="d" values="M482.1 157.9L351.9 165.4;M549.3 176.8L417.5 166.1;M482.1 157.9L351.9 165.4" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path></g>
+<g class="hop" style="--i:9"><path class="lit" pathLength="1" d="M351.9 165.4L299.8 180"><animate attributeName="d" values="M351.9 165.4L299.8 180;M417.5 166.1L374.2 173.9;M351.9 165.4L299.8 180" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark-halo" pathLength="1" d="M351.9 165.4L299.8 180"><animate attributeName="d" values="M351.9 165.4L299.8 180;M417.5 166.1L374.2 173.9;M351.9 165.4L299.8 180" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark" pathLength="1" d="M351.9 165.4L299.8 180"><animate attributeName="d" values="M351.9 165.4L299.8 180;M417.5 166.1L374.2 173.9;M351.9 165.4L299.8 180" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path></g>
+<g class="hop" style="--i:10"><path class="lit" pathLength="1" d="M299.8 180L332.2 165.7"><animate attributeName="d" values="M299.8 180L332.2 165.7;M374.2 173.9L388 163;M299.8 180L332.2 165.7" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark-halo" pathLength="1" d="M299.8 180L332.2 165.7"><animate attributeName="d" values="M299.8 180L332.2 165.7;M374.2 173.9L388 163;M299.8 180L332.2 165.7" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark" pathLength="1" d="M299.8 180L332.2 165.7"><animate attributeName="d" values="M299.8 180L332.2 165.7;M374.2 173.9L388 163;M299.8 180L332.2 165.7" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path></g>
+<g class="hop" style="--i:11"><path class="lit" pathLength="1" d="M332.2 165.7L229.6 178.5"><animate attributeName="d" values="M332.2 165.7L229.6 178.5;M388 163L298.5 162.2;M332.2 165.7L229.6 178.5" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark-halo" pathLength="1" d="M332.2 165.7L229.6 178.5"><animate attributeName="d" values="M332.2 165.7L229.6 178.5;M388 163L298.5 162.2;M332.2 165.7L229.6 178.5" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark" pathLength="1" d="M332.2 165.7L229.6 178.5"><animate attributeName="d" values="M332.2 165.7L229.6 178.5;M388 163L298.5 162.2;M332.2 165.7L229.6 178.5" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path></g>
+<g class="hop" style="--i:12"><path class="lit" pathLength="1" d="M229.6 178.5L185.6 201.2"><animate attributeName="d" values="M229.6 178.5L185.6 201.2;M298.5 162.2L257.1 177.5;M229.6 178.5L185.6 201.2" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark-halo" pathLength="1" d="M229.6 178.5L185.6 201.2"><animate attributeName="d" values="M229.6 178.5L185.6 201.2;M298.5 162.2L257.1 177.5;M229.6 178.5L185.6 201.2" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark" pathLength="1" d="M229.6 178.5L185.6 201.2"><animate attributeName="d" values="M229.6 178.5L185.6 201.2;M298.5 162.2L257.1 177.5;M229.6 178.5L185.6 201.2" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path></g>
+<g class="hop" style="--i:13"><path class="lit" pathLength="1" d="M185.6 201.2L205 219"><animate attributeName="d" values="M185.6 201.2L205 219;M257.1 177.5L253.3 195.2;M185.6 201.2L205 219" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark-halo" pathLength="1" d="M185.6 201.2L205 219"><animate attributeName="d" values="M185.6 201.2L205 219;M257.1 177.5L253.3 195.2;M185.6 201.2L205 219" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark" pathLength="1" d="M185.6 201.2L205 219"><animate attributeName="d" values="M185.6 201.2L205 219;M257.1 177.5L253.3 195.2;M185.6 201.2L205 219" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path></g>
+<g class="hop" style="--i:14"><path class="lit" pathLength="1" d="M205 219L164.9 277.4"><animate attributeName="d" values="M205 219L164.9 277.4;M253.3 195.2L170.5 238.7;M205 219L164.9 277.4" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark-halo" pathLength="1" d="M205 219L164.9 277.4"><animate attributeName="d" values="M205 219L164.9 277.4;M253.3 195.2L170.5 238.7;M205 219L164.9 277.4" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark" pathLength="1" d="M205 219L164.9 277.4"><animate attributeName="d" values="M205 219L164.9 277.4;M253.3 195.2L170.5 238.7;M205 219L164.9 277.4" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path></g>
+<g class="hop" style="--i:15"><path class="lit" pathLength="1" d="M164.9 277.4L119.9 299.7"><animate attributeName="d" values="M164.9 277.4L119.9 299.7;M170.5 238.7L116.4 250;M164.9 277.4L119.9 299.7" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark-halo" pathLength="1" d="M164.9 277.4L119.9 299.7"><animate attributeName="d" values="M164.9 277.4L119.9 299.7;M170.5 238.7L116.4 250;M164.9 277.4L119.9 299.7" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark" pathLength="1" d="M164.9 277.4L119.9 299.7"><animate attributeName="d" values="M164.9 277.4L119.9 299.7;M170.5 238.7L116.4 250;M164.9 277.4L119.9 299.7" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path></g>
+<g class="hop" style="--i:16"><path class="lit" pathLength="1" d="M119.9 299.7L165.7 326.7"><animate attributeName="d" values="M119.9 299.7L165.7 326.7;M116.4 250L144.6 281;M119.9 299.7L165.7 326.7" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark-halo" pathLength="1" d="M119.9 299.7L165.7 326.7"><animate attributeName="d" values="M119.9 299.7L165.7 326.7;M116.4 250L144.6 281;M119.9 299.7L165.7 326.7" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark" pathLength="1" d="M119.9 299.7L165.7 326.7"><animate attributeName="d" values="M119.9 299.7L165.7 326.7;M116.4 250L144.6 281;M119.9 299.7L165.7 326.7" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path></g>
+<g class="hop" style="--i:17"><path class="lit" pathLength="1" d="M165.7 326.7L325.9 302.2"><animate attributeName="d" values="M165.7 326.7L325.9 302.2;M144.6 281L255.2 284.3;M165.7 326.7L325.9 302.2" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark-halo" pathLength="1" d="M165.7 326.7L325.9 302.2"><animate attributeName="d" values="M165.7 326.7L325.9 302.2;M144.6 281L255.2 284.3;M165.7 326.7L325.9 302.2" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark" pathLength="1" d="M165.7 326.7L325.9 302.2"><animate attributeName="d" values="M165.7 326.7L325.9 302.2;M144.6 281L255.2 284.3;M165.7 326.7L325.9 302.2" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path></g>
+<g class="hop" style="--i:18"><path class="lit" pathLength="1" d="M325.9 302.2L298.9 411.8"><animate attributeName="d" values="M325.9 302.2L298.9 411.8;M255.2 284.3L211.3 380.9;M325.9 302.2L298.9 411.8" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark-halo" pathLength="1" d="M325.9 302.2L298.9 411.8"><animate attributeName="d" values="M325.9 302.2L298.9 411.8;M255.2 284.3L211.3 380.9;M325.9 302.2L298.9 411.8" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark" pathLength="1" d="M325.9 302.2L298.9 411.8"><animate attributeName="d" values="M325.9 302.2L298.9 411.8;M255.2 284.3L211.3 380.9;M325.9 302.2L298.9 411.8" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path></g>
+<g class="hop" style="--i:19"><path class="lit" pathLength="1" d="M298.9 411.8L340.5 380"><animate attributeName="d" values="M298.9 411.8L340.5 380;M211.3 380.9L264 361.7;M298.9 411.8L340.5 380" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark-halo" pathLength="1" d="M298.9 411.8L340.5 380"><animate attributeName="d" values="M298.9 411.8L340.5 380;M211.3 380.9L264 361.7;M298.9 411.8L340.5 380" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark" pathLength="1" d="M298.9 411.8L340.5 380"><animate attributeName="d" values="M298.9 411.8L340.5 380;M211.3 380.9L264 361.7;M298.9 411.8L340.5 380" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path></g>
+<g class="hop" style="--i:20"><path class="lit" pathLength="1" d="M340.5 380L515 335.5"><animate attributeName="d" values="M340.5 380L515 335.5;M264 361.7L393.9 352.2;M340.5 380L515 335.5" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark-halo" pathLength="1" d="M340.5 380L515 335.5"><animate attributeName="d" values="M340.5 380L515 335.5;M264 361.7L393.9 352.2;M340.5 380L515 335.5" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path><path class="spark" pathLength="1" d="M340.5 380L515 335.5"><animate attributeName="d" values="M340.5 380L515 335.5;M264 361.7L393.9 352.2;M340.5 380L515 335.5" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/></path></g>
+<g class="body" style="--n:0"><g><animateTransform attributeName="transform" type="translate" values="299.8 180;374.2 173.9;299.8 180" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="ping" r="8" style="--i:9"/><circle class="b4" r="5" fill-opacity="0.42"/><circle class="hl" cx="-1.5" cy="-1.6" r="1.7"/></g></g>
+<g class="body" style="--n:1"><g><animateTransform attributeName="transform" type="translate" values="296.7 126.3;374.8 121;296.7 126.3" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="b4" r="3.9" fill-opacity="0.42"/></g></g>
+<g class="body" style="--n:2"><g><animateTransform attributeName="transform" type="translate" values="351.9 165.4;417.5 166.1;351.9 165.4" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="ping" r="11.4" style="--i:8"/><ellipse class="ring r4" rx="16.8" ry="5.2" transform="rotate(-18)"/><circle class="b4" r="8.4" fill-opacity="0.42"/><circle class="hl" cx="-2.5" cy="-2.7" r="2.9"/></g></g>
+<g class="body" style="--n:3"><g><animateTransform attributeName="transform" type="translate" values="185.6 201.2;257.1 177.5;185.6 201.2" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="ping" r="8.3" style="--i:12"/><circle class="b5" r="5.3" fill-opacity="0.42"/><circle class="hl" cx="-1.6" cy="-1.7" r="1.8"/></g></g>
+<g class="body" style="--n:4"><g><animateTransform attributeName="transform" type="translate" values="229.6 178.5;298.5 162.2;229.6 178.5" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="ping" r="11.5" style="--i:11"/><ellipse class="ring r5" rx="17" ry="5.3" transform="rotate(-18)"/><circle class="b5" r="8.5" fill-opacity="0.42"/><circle class="hl" cx="-2.5" cy="-2.7" r="2.9"/></g></g>
+<g class="body" style="--n:5"><g><animateTransform attributeName="transform" type="translate" values="520.1 145.4;595.8 169.4;520.1 145.4" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="b3" r="4.5" fill-opacity="0.42"/><circle class="hl" cx="-1.4" cy="-1.4" r="1.5"/></g></g>
+<g class="body" style="--n:6"><g><animateTransform attributeName="transform" type="translate" values="482.1 157.9;549.3 176.8;482.1 157.9" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="ping" r="9.6" style="--i:7"/><circle class="b3" r="6.6" fill-opacity="0.42"/><circle class="hl" cx="-2" cy="-2.1" r="2.2"/></g></g>
+<g class="body" style="--n:7"><g><animateTransform attributeName="transform" type="translate" values="155.9 181.7;230 155.5;155.9 181.7" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="b5" r="4.6" fill-opacity="0.42"/><circle class="hl" cx="-1.4" cy="-1.5" r="1.6"/></g></g>
+<g class="body" style="--n:8"><g><animateTransform attributeName="transform" type="translate" values="332.2 165.7;388 163;332.2 165.7" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="ping" r="9.7" style="--i:10"/><circle class="b4" r="6.7" fill-opacity="0.43"/><circle class="hl" cx="-2" cy="-2.2" r="2.3"/></g></g>
+<g class="body" style="--n:9"><g><animateTransform attributeName="transform" type="translate" values="510.5 194.9;565.3 219.8;510.5 194.9" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="b3" r="4.2" fill-opacity="0.48"/></g></g>
+<g class="body" style="--n:10"><g><animateTransform attributeName="transform" type="translate" values="497.8 161.6;554.4 182.3;497.8 161.6" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="ping" r="8.7" style="--i:6"/><circle class="b3" r="5.7" fill-opacity="0.50"/><circle class="hl" cx="-1.7" cy="-1.8" r="2"/></g></g>
+<g class="body" style="--n:11"><g><animateTransform attributeName="transform" type="translate" values="205 219;253.3 195.2;205 219" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="ping" r="10" style="--i:13"/><circle class="b5" r="7" fill-opacity="0.52"/><circle class="hl" cx="-2.1" cy="-2.3" r="2.4"/></g></g>
+<g class="body" style="--n:12"><g><animateTransform attributeName="transform" type="translate" values="479.3 189.5;522.5 208.2;479.3 189.5" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="ping" r="12.4" style="--i:5"/><ellipse class="ring r3" rx="18.7" ry="5.8" transform="rotate(-18)"/><circle class="b3" r="9.4" fill-opacity="0.55"/><circle class="hl" cx="-2.8" cy="-3" r="3.2"/></g></g>
+<g class="body" style="--n:13"><g><animateTransform attributeName="transform" type="translate" values="153.1 173.6;213.2 146.7;153.1 173.6" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="b5" r="4.5" fill-opacity="0.56"/><circle class="hl" cx="-1.4" cy="-1.4" r="1.5"/></g></g>
+<g class="body" style="--n:14"><g><animateTransform attributeName="transform" type="translate" values="528.2 143.8;583.2 167.5;528.2 143.8" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="b3" r="4.8" fill-opacity="0.57"/><circle class="hl" cx="-1.4" cy="-1.5" r="1.6"/></g></g>
+<g class="body" style="--n:15"><g><animateTransform attributeName="transform" type="translate" values="207 172.6;254 152;207 172.6" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="b5" r="4" fill-opacity="0.60"/></g></g>
+<g class="body" style="--n:16"><g><animateTransform attributeName="transform" type="translate" values="592.1 228.2;618.6 268.1;592.1 228.2" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="b2" r="3.8" fill-opacity="0.74"/></g></g>
+<g class="body" style="--n:17"><g><animateTransform attributeName="transform" type="translate" values="558.8 199.1;575.4 229.4;558.8 199.1" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="ping" r="11.2" style="--i:4"/><circle class="b2" r="8.2" fill-opacity="0.79"/><circle class="hl" cx="-2.4" cy="-2.6" r="2.8"/></g></g>
+<g class="body" style="--n:18"><g><animateTransform attributeName="transform" type="translate" values="193.3 345.5;183.9 304.8;193.3 345.5" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="b6" r="5.9" fill-opacity="0.84"/><circle class="hl" cx="-1.8" cy="-1.9" r="2"/></g></g>
+<g class="body" style="--n:19"><g><animateTransform attributeName="transform" type="translate" values="164.9 277.4;170.5 238.7;164.9 277.4" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="ping" r="14" style="--i:14"/><ellipse class="ring r6" rx="22.1" ry="6.8" transform="rotate(-18)"/><circle class="b6" r="11" fill-opacity="0.84"/><circle class="hl" cx="-3.3" cy="-3.5" r="3.7"/></g></g>
+<g class="body" style="--n:20"><g><animateTransform attributeName="transform" type="translate" values="217.1 268.3;213.5 238.6;217.1 268.3" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="b6" r="4.5" fill-opacity="0.85"/><circle class="hl" cx="-1.4" cy="-1.4" r="1.5"/></g></g>
+<g class="body" style="--n:21"><g><animateTransform attributeName="transform" type="translate" values="600.7 271.7;599.1 315.3;600.7 271.7" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="ping" r="10" style="--i:3"/><circle class="b2" r="7" fill-opacity="0.86"/><circle class="hl" cx="-2.1" cy="-2.2" r="2.4"/></g></g>
+<g class="body" style="--n:22"><g><animateTransform attributeName="transform" type="translate" values="119.9 299.7;116.4 250;119.9 299.7" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="ping" r="10.4" style="--i:15"/><circle class="b6" r="7.4" fill-opacity="0.94"/><circle class="hl" cx="-2.2" cy="-2.4" r="2.5"/></g></g>
+<g class="body" style="--n:23"><g><animateTransform attributeName="transform" type="translate" values="645.1 247.9;641.1 297.6;645.1 247.9" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="b2" r="5.5" fill-opacity="0.95"/><circle class="hl" cx="-1.7" cy="-1.8" r="1.9"/></g></g>
+<g class="body" style="--n:24"><g><animateTransform attributeName="transform" type="translate" values="165.7 326.7;144.6 281;165.7 326.7" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="ping" r="12.1" style="--i:16"/><circle class="b6" r="9.1" fill-opacity="0.96"/><circle class="hl" cx="-2.7" cy="-2.9" r="3.1"/></g></g>
+<g class="body" style="--n:25"><g><animateTransform attributeName="transform" type="translate" values="591.4 226.5;564.2 261.3;591.4 226.5" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="ping" r="15.4" style="--i:2"/><ellipse class="ring r2" rx="24.7" ry="7.7" transform="rotate(-18)"/><circle class="b2" r="12.4" fill-opacity="1.00"/><circle class="hl" cx="-3.7" cy="-4" r="4.2"/></g></g>
+<g class="body" style="--n:26"><g><animateTransform attributeName="transform" type="translate" values="340.5 380;264 361.7;340.5 380" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="ping" r="12.8" style="--i:19"/><circle class="b7" r="9.8" fill-opacity="1.00"/><circle class="hl" cx="-2.9" cy="-3.1" r="3.3"/></g></g>
+<g class="body" style="--n:27"><g><animateTransform attributeName="transform" type="translate" values="325.9 302.2;255.2 284.3;325.9 302.2" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="ping" r="16.2" style="--i:17"/><ellipse class="ring r7" rx="26.4" ry="8.2" transform="rotate(-18)"/><circle class="b7" r="13.2" fill-opacity="1.00"/><circle class="hl" cx="-4" cy="-4.2" r="4.5"/></g></g>
+<g class="body" style="--n:28"><g><animateTransform attributeName="transform" type="translate" values="298.9 411.8;211.3 380.9;298.9 411.8" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="ping" r="11.4" style="--i:18"/><circle class="b7" r="8.4" fill-opacity="1.00"/><circle class="hl" cx="-2.5" cy="-2.7" r="2.8"/></g></g>
+<g class="body" style="--n:29"><g><animateTransform attributeName="transform" type="translate" values="568.2 345.7;482 379.4;568.2 345.7" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="b1" r="5.8" fill-opacity="1.00"/><circle class="hl" cx="-1.7" cy="-1.9" r="2"/></g></g>
+<g class="body" style="--n:30"><g><animateTransform attributeName="transform" type="translate" values="598 297;520.7 334.7;598 297" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="ping" r="13.5" style="--i:1"/><circle class="b1" r="10.5" fill-opacity="1.00"/><circle class="hl" cx="-3.1" cy="-3.4" r="3.6"/></g></g>
+<g class="body" style="--n:31"><g><animateTransform attributeName="transform" type="translate" values="515 335.5;393.9 352.2;515 335.5" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="ping" r="17.8" style="--i:20"/><ellipse class="ring r1" rx="29.7" ry="9.2" transform="rotate(-18)"/><circle class="b1" r="14.8" fill-opacity="1.00"/><circle class="hl" cx="-4.5" cy="-4.8" r="5"/></g></g>
+<g class="body" style="--n:32"><g><animateTransform attributeName="transform" type="translate" values="649.4 375.9;526.5 428.2;649.4 375.9" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="b1" r="6.8" fill-opacity="1.00"/><circle class="hl" cx="-2" cy="-2.2" r="2.3"/></g></g>
+<g class="body" style="--n:33"><g><animateTransform attributeName="transform" type="translate" values="569 344.2;439.8 373;569 344.2" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="ping" r="12.6" style="--i:0"/><circle class="b1" r="9.6" fill-opacity="1.00"/><circle class="hl" cx="-2.9" cy="-3.1" r="3.3"/></g></g>
+<g class="body" style="--n:34"><g><animateTransform attributeName="transform" type="translate" values="322.4 401.4;186.8 370.8;322.4 401.4" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="b7" r="5.4" fill-opacity="1.00"/><circle class="hl" cx="-1.6" cy="-1.7" r="1.9"/></g></g>
+<g class="body" style="--n:35"><g><animateTransform attributeName="transform" type="translate" values="618.4 323.6;496.3 363.3;618.4 323.6" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/><circle class="b1" r="8.1" fill-opacity="1.00"/><circle class="hl" cx="-2.4" cy="-2.6" r="2.8"/></g></g>
+<g class="lbl" style="--k:0"><text class="tl1" text-anchor="middle"><animateTransform attributeName="transform" type="translate" values="586.3 404.7;476.5 457;586.3 404.7" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/>Arquitetura</text></g>
+<g class="lbl" style="--k:1"><text class="tl2" text-anchor="end"><animateTransform attributeName="transform" type="translate" values="538.7 238.7;539.8 278.3;538.7 238.7" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/>Rota Certa</text></g>
+<g class="lbl" style="--k:2"><text class="tl3" text-anchor="middle"><animateTransform attributeName="transform" type="translate" values="503 127;561.8 150.7;503 127" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/>Como eu trabalho</text></g>
+<g class="lbl" style="--k:3"><text class="tl4" text-anchor="middle"><animateTransform attributeName="transform" type="translate" values="320.1 110.4;388.6 105.1;320.1 110.4" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/>Saúde</text></g>
+<g class="lbl" style="--k:4"><text class="tl5" text-anchor="middle"><animateTransform attributeName="transform" type="translate" values="189.4 156.6;251 130.2;189.4 156.6" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/>Leituras</text></g>
+<g class="lbl" style="--k:5"><text class="tl6" text-anchor="middle"><animateTransform attributeName="transform" type="translate" values="172.2 373.4;165.8 332.6;172.2 373.4" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/>Marca</text></g>
+<g class="lbl" style="--k:6"><text class="tl7" text-anchor="middle"><animateTransform attributeName="transform" type="translate" values="321.9 442.1;229.3 411.2;321.9 442.1" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="44s" repeatCount="indefinite"/>Clientes</text></g>
+      </svg>
+      <svg class="cosmos still" viewBox="62 70 640 420" role="img" aria-label="Um universo de memórias: corpos em sete cores, uma por tema, agrupados por assunto e ligados por linhas finas.">
+<g class="dust d1"><circle cx="41.2" cy="310" r="0.9"/><circle cx="81" cy="22.4" r="1.2"/><circle cx="311.6" cy="152.8" r="1"/><circle cx="703" cy="158.1" r="1.2"/><circle cx="240.7" cy="473.1" r="1"/><circle cx="100.5" cy="454.5" r="0.6"/><circle cx="74.9" cy="294.6" r="1.2"/><circle cx="24.1" cy="468.3" r="1"/><circle cx="537.2" cy="188.3" r="0.8"/><circle cx="218.5" cy="252.8" r="0.7"/><circle cx="80" cy="187.2" r="0.5"/><circle cx="542.3" cy="106.9" r="0.7"/><circle cx="327.7" cy="356.8" r="1.1"/><circle cx="622.7" cy="130.2" r="1.1"/><circle cx="696.6" cy="284.6" r="1.2"/><circle cx="488.9" cy="125.7" r="0.7"/><circle cx="602.5" cy="102.8" r="1.2"/><circle cx="732.3" cy="369.2" r="0.6"/><circle cx="68.2" cy="419.3" r="0.7"/><circle cx="224" cy="283.9" r="1"/><circle cx="322.1" cy="217.1" r="0.9"/><circle cx="422.2" cy="306" r="0.8"/><circle cx="12.4" cy="60.1" r="0.7"/><circle cx="418.8" cy="145" r="0.6"/><circle cx="655.7" cy="82" r="1.1"/><circle cx="453.4" cy="299.6" r="1.2"/><circle cx="111" cy="347.6" r="1.1"/><circle cx="718.6" cy="192" r="0.7"/><circle cx="219.5" cy="181.7" r="0.9"/><circle cx="349.9" cy="83.4" r="0.5"/><circle cx="186.8" cy="128.1" r="0.5"/><circle cx="10.5" cy="166.6" r="1.2"/><circle cx="400.6" cy="331.9" r="0.7"/><circle cx="716.6" cy="346" r="0.5"/></g>
+<g class="dust d2"><circle cx="424" cy="111.9" r="0.6"/><circle cx="703.9" cy="445.7" r="0.9"/><circle cx="682.1" cy="21.6" r="1.1"/><circle cx="288.3" cy="119.1" r="0.7"/><circle cx="351.6" cy="389.7" r="0.8"/><circle cx="710.1" cy="145.9" r="0.5"/><circle cx="639.5" cy="219.8" r="1"/><circle cx="489" cy="161.8" r="0.6"/><circle cx="544.8" cy="138.2" r="0.6"/><circle cx="170" cy="73.6" r="0.8"/><circle cx="651" cy="72.3" r="1"/><circle cx="17.6" cy="188.7" r="0.8"/><circle cx="158.8" cy="225.9" r="0.6"/><circle cx="45.1" cy="289.2" r="0.6"/><circle cx="164.3" cy="100.2" r="1"/><circle cx="281.3" cy="29.8" r="0.6"/><circle cx="367.5" cy="311.7" r="1.1"/><circle cx="590.3" cy="145.9" r="1.2"/><circle cx="266.2" cy="207.9" r="0.6"/><circle cx="378.2" cy="401.2" r="1"/><circle cx="738.1" cy="482.7" r="0.6"/><circle cx="281.2" cy="72.3" r="0.7"/><circle cx="79.2" cy="236.9" r="0.8"/><circle cx="521.8" cy="87.6" r="0.5"/><circle cx="130.6" cy="361.3" r="1.2"/><circle cx="294.2" cy="391.1" r="1"/></g>
+<path class="ln cross" pathLength="1" d="M565.3 317.5L582.6 244.1M570.3 213.6L502.3 197.9M516.7 166.1L384.7 164.6M359.9 163.4L263.3 169.1M227.5 206L163.6 257.5M149.8 303.8L287.8 294.9M299.7 373L457.5 347.1M509.6 362.1L336.7 175.6M527.5 170.7L112.6 274.2M220.2 187.8L250.8 398.8" style="--k:7"/>
+<path class="ln s1" pathLength="1" d="M457.5 347.1L509.6 362.1M509.6 362.1L565.3 317.5M509.6 362.1L564.6 346.4M564.6 346.4L596.6 405.2M565.3 317.5L530.1 364.7" style="--k:0"/>
+<path class="ln s2" pathLength="1" d="M582.6 244.1L604.4 293M604.4 293L570.3 213.6M604.4 293L648.7 272.1M570.3 213.6L608.9 247.1" style="--k:1"/>
+<path class="ln s3" pathLength="1" d="M502.3 197.9L527.5 170.7M527.5 170.7L516.7 166.1M527.5 170.7L539.5 206.1M527.5 170.7L557.4 154.5M516.7 166.1L559.1 155.9" style="--k:2"/>
+<path class="ln s4" pathLength="1" d="M384.7 164.6L336.7 175.6M336.7 175.6L359.9 163.4M336.7 175.6L335.5 122.5" style="--k:3"/>
+<path class="ln s5" pathLength="1" d="M263.3 169.1L220.2 187.8M220.2 187.8L227.5 206M227.5 206L181.3 158.8M220.2 187.8L191.6 167.1M227.5 206L228.8 161.4" style="--k:4"/>
+<path class="ln s6" pathLength="1" d="M163.6 257.5L112.6 274.2M112.6 274.2L149.8 303.8M163.6 257.5L212 253.2M149.8 303.8L184.5 324.9" style="--k:5"/>
+<path class="ln s7" pathLength="1" d="M287.8 294.9L250.8 398.8M250.8 398.8L299.7 373M250.8 398.8L249.2 390" style="--k:6"/>
+<path class="lit on" pathLength="1" d="M457.5 347.1L509.6 362.1"/>
+<g class="body" transform="translate(336.7 175.6)"><circle class="b4" r="5" fill-opacity="0.42"/><circle class="hl" cx="-1.5" cy="-1.6" r="1.7"/></g>
+<g class="body" transform="translate(335.5 122.5)"><circle class="b4" r="3.9" fill-opacity="0.42"/></g>
+<g class="body" transform="translate(384.7 164.6)"><ellipse class="ring r4" rx="16.8" ry="5.2" transform="rotate(-18)"/><circle class="b4" r="8.4" fill-opacity="0.42"/><circle class="hl" cx="-2.5" cy="-2.7" r="2.9"/></g>
+<g class="body" transform="translate(220.2 187.8)"><circle class="b5" r="5.3" fill-opacity="0.42"/><circle class="hl" cx="-1.6" cy="-1.7" r="1.8"/></g>
+<g class="body" transform="translate(263.3 169.1)"><ellipse class="ring r5" rx="17" ry="5.3" transform="rotate(-18)"/><circle class="b5" r="8.5" fill-opacity="0.42"/><circle class="hl" cx="-2.5" cy="-2.7" r="2.9"/></g>
+<g class="body" transform="translate(559.1 155.9)"><circle class="b3" r="4.5" fill-opacity="0.42"/><circle class="hl" cx="-1.4" cy="-1.4" r="1.5"/></g>
+<g class="body" transform="translate(516.7 166.1)"><circle class="b3" r="6.6" fill-opacity="0.42"/><circle class="hl" cx="-2" cy="-2.1" r="2.2"/></g>
+<g class="body" transform="translate(191.6 167.1)"><circle class="b5" r="4.6" fill-opacity="0.42"/><circle class="hl" cx="-1.4" cy="-1.5" r="1.6"/></g>
+<g class="body" transform="translate(359.9 163.4)"><circle class="b4" r="6.7" fill-opacity="0.43"/><circle class="hl" cx="-2" cy="-2.2" r="2.3"/></g>
+<g class="body" transform="translate(539.5 206.1)"><circle class="b3" r="4.2" fill-opacity="0.48"/></g>
+<g class="body" transform="translate(527.5 170.7)"><circle class="b3" r="5.7" fill-opacity="0.50"/><circle class="hl" cx="-1.7" cy="-1.8" r="2"/></g>
+<g class="body" transform="translate(227.5 206)"><circle class="b5" r="7" fill-opacity="0.52"/><circle class="hl" cx="-2.1" cy="-2.3" r="2.4"/></g>
+<g class="body" transform="translate(502.3 197.9)"><ellipse class="ring r3" rx="18.7" ry="5.8" transform="rotate(-18)"/><circle class="b3" r="9.4" fill-opacity="0.55"/><circle class="hl" cx="-2.8" cy="-3" r="3.2"/></g>
+<g class="body" transform="translate(181.3 158.8)"><circle class="b5" r="4.5" fill-opacity="0.56"/><circle class="hl" cx="-1.4" cy="-1.4" r="1.5"/></g>
+<g class="body" transform="translate(557.4 154.5)"><circle class="b3" r="4.8" fill-opacity="0.57"/><circle class="hl" cx="-1.4" cy="-1.5" r="1.6"/></g>
+<g class="body" transform="translate(228.8 161.4)"><circle class="b5" r="4" fill-opacity="0.60"/></g>
+<g class="body" transform="translate(608.9 247.1)"><circle class="b2" r="3.8" fill-opacity="0.74"/></g>
+<g class="body" transform="translate(570.3 213.6)"><circle class="b2" r="8.2" fill-opacity="0.79"/><circle class="hl" cx="-2.4" cy="-2.6" r="2.8"/></g>
+<g class="body" transform="translate(184.5 324.9)"><circle class="b6" r="5.9" fill-opacity="0.84"/><circle class="hl" cx="-1.8" cy="-1.9" r="2"/></g>
+<g class="body" transform="translate(163.6 257.5)"><ellipse class="ring r6" rx="22.1" ry="6.8" transform="rotate(-18)"/><circle class="b6" r="11" fill-opacity="0.84"/><circle class="hl" cx="-3.3" cy="-3.5" r="3.7"/></g>
+<g class="body" transform="translate(212 253.2)"><circle class="b6" r="4.5" fill-opacity="0.85"/><circle class="hl" cx="-1.4" cy="-1.4" r="1.5"/></g>
+<g class="body" transform="translate(604.4 293)"><circle class="b2" r="7" fill-opacity="0.86"/><circle class="hl" cx="-2.1" cy="-2.2" r="2.4"/></g>
+<g class="body" transform="translate(112.6 274.2)"><circle class="b6" r="7.4" fill-opacity="0.94"/><circle class="hl" cx="-2.2" cy="-2.4" r="2.5"/></g>
+<g class="body" transform="translate(648.7 272.1)"><circle class="b2" r="5.5" fill-opacity="0.95"/><circle class="hl" cx="-1.7" cy="-1.8" r="1.9"/></g>
+<g class="body" transform="translate(149.8 303.8)"><circle class="b6" r="9.1" fill-opacity="0.96"/><circle class="hl" cx="-2.7" cy="-2.9" r="3.1"/></g>
+<g class="body" transform="translate(582.6 244.1)"><ellipse class="ring r2" rx="24.7" ry="7.7" transform="rotate(-18)"/><circle class="b2" r="12.4" fill-opacity="1.00"/><circle class="hl" cx="-3.7" cy="-4" r="4.2"/></g>
+<g class="body" transform="translate(299.7 373)"><circle class="b7" r="9.8" fill-opacity="1.00"/><circle class="hl" cx="-2.9" cy="-3.1" r="3.3"/></g>
+<g class="body" transform="translate(287.8 294.9)"><ellipse class="ring r7" rx="26.4" ry="8.2" transform="rotate(-18)"/><circle class="b7" r="13.2" fill-opacity="1.00"/><circle class="hl" cx="-4" cy="-4.2" r="4.5"/></g>
+<g class="body" transform="translate(250.8 398.8)"><circle class="b7" r="8.4" fill-opacity="1.00"/><circle class="hl" cx="-2.5" cy="-2.7" r="2.8"/></g>
+<g class="body" transform="translate(530.1 364.7)"><circle class="b1" r="5.8" fill-opacity="1.00"/><circle class="hl" cx="-1.7" cy="-1.9" r="2"/></g>
+<g class="body" transform="translate(565.3 317.5)"><circle class="b1" r="10.5" fill-opacity="1.00"/><circle class="hl" cx="-3.1" cy="-3.4" r="3.6"/></g>
+<g class="body" transform="translate(457.5 347.1)"><ellipse class="ring r1" rx="29.7" ry="9.2" transform="rotate(-18)"/><circle class="b1" r="14.8" fill-opacity="1.00"/><circle class="hl" cx="-4.5" cy="-4.8" r="5"/></g>
+<g class="body" transform="translate(596.6 405.2)"><circle class="b1" r="6.8" fill-opacity="1.00"/><circle class="hl" cx="-2" cy="-2.2" r="2.3"/></g>
+<g class="body" transform="translate(509.6 362.1)"><circle class="ping on" r="14.6"/><circle class="b1" r="9.6" fill-opacity="1.00"/><circle class="hl" cx="-2.9" cy="-3.1" r="3.3"/></g>
+<g class="body" transform="translate(249.2 390)"><circle class="b7" r="5.4" fill-opacity="1.00"/><circle class="hl" cx="-1.6" cy="-1.7" r="1.9"/></g>
+<g class="body" transform="translate(564.6 346.4)"><circle class="b1" r="8.1" fill-opacity="1.00"/><circle class="hl" cx="-2.4" cy="-2.6" r="2.8"/></g>
+<text class="lbl tl1" text-anchor="middle" transform="translate(537.3 434)">Arquitetura</text>
+<text class="lbl tl2" text-anchor="end" transform="translate(550.1 258)">Rota Certa</text>
+<text class="lbl tl3" text-anchor="middle" transform="translate(533.8 137.7)">Como eu trabalho</text>
+<text class="lbl tl4" text-anchor="middle" transform="translate(354.2 106.5)">Saúde</text>
+<text class="lbl tl5" text-anchor="middle" transform="translate(218.8 142.3)">Leituras</text>
+<text class="lbl tl6" text-anchor="middle" transform="translate(164.5 352.8)">Marca</text>
+<text class="lbl tl7" text-anchor="middle" transform="translate(271.9 429.1)">Clientes</text>
+      </svg>
+      <figcaption>Os temas de um cofre de exemplo. A luz é a IA lendo.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="sec" id="what" aria-labelledby="what-title">
+  <div class="wrap">
+    <p class="label" aria-hidden="true">O que é</p>
+    <div class="body">
+      <h2 id="what-title">Uma pasta de Markdown que a sua IA lê e escreve.</h2>
+      <p class="intro">Toda sessão de IA começa do zero. Você repete o gerenciador de pacotes, o formato do commit e aquela decisão de duas semanas atrás. O Omnimind guarda isso em arquivos seus e entrega o que importa quando a próxima sessão começa.</p>
+
+      <dl class="words">
+        <div><dt>Nota</dt><dd>O que você escreve, em Markdown.</dd><dd class="mono">notes/</dd></div>
+        <div><dt>Memória</dt><dd>O que a IA aprende, com data, origem e autoridade.</dd><dd class="mono">memories/</dd></div>
+        <div><dt>Cofre</dt><dd>A pasta que guarda as duas. Uma pasta comum, sem conta e sem nuvem.</dd><dd class="mono">~/Omnimind</dd></div>
+      </dl>
+
+      <div class="block cols">
+        <div>
+          <h3 class="small-h">Três ideias sustentam o produto</h3>
+          <ul class="ideas">
+            <li><b>A correção não depende da IA.</b><span>Um hook guarda sua frase literal antes de o modelo decidir qualquer coisa.</span></li>
+            <li><b>A IA não fala por você sem prova.</b><span>Só vira “disse a pessoa” o que uma citação literal, registrada no diário, sustenta.</span></li>
+            <li><b>Tudo é reversível.</b><span>Cada mudança fica no diário, e uma sessão inteira se desfaz com um clique.</span></li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="small-h">O cofre no disco</h3>
+<pre class="tree" tabindex="0"><b>~/Omnimind/</b>
+├── <b>brain.toml</b>       nome e regras do cofre
+├── <b>notes/</b>           suas notas em Markdown
+├── <b>memories/</b>
+│   ├── decision/    o que foi decidido
+│   ├── preference/  como você gosta de trabalhar
+│   ├── procedure/   como se faz
+│   ├── concept/     o que algo significa
+│   └── episode/     o que aconteceu
+└── <b>.omnimind/</b>       privado e descartável
+    ├── journal/     diário só de anexar
+    └── snapshot.bin índice para abrir rápido</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="how" aria-labelledby="how-title">
+  <div class="wrap">
+    <p class="label" aria-hidden="true">Como funciona</p>
+    <div class="body">
+      <h2 id="how-title">Uma sessão, do que você diz ao que fica no disco.</h2>
+      <p class="intro">Dois caminhos saem da conversa. Os hooks anexam ao diário o que você disse, sem passar por modelo nenhum. O servidor MCP dá à IA quatro ferramentas para buscar, ler e gravar. Toda escrita de memória passa pelo mesmo portão.</p>
+
+      <div class="block split">
+        <figure class="dg">
+          <svg class="flow" viewBox="0 0 400 596" role="img" aria-labelledby="flow-t flow-d">
+            <title id="flow-t">Uma sessão por dentro</title>
+            <desc id="flow-d">Você conversa com a IA. Os hooks anexam sua frase ao diário. O servidor MCP manda as escritas da IA pelo portão. A memória vira um arquivo Markdown no cofre. O app mostra a mudança ao vivo. Na sessão seguinte, o resumo volta para a IA.</desc>
+            <path class="wire" d="M100 84V123M260 84V123M260 212V251M260 336V375M100 212V375M260 468V507"/>
+            <path class="head" d="M95.5 117L100 122.5L104.5 117M255.5 117L260 122.5L264.5 117M255.5 245L260 250.5L264.5 245M255.5 369L260 374.5L264.5 369M95.5 369L100 374.5L104.5 369M255.5 501L260 506.5L264.5 501"/>
+            <path class="wire dash" d="M332 422H364Q372 422 372 414V58Q372 50 364 50H334"/>
+            <path class="head" d="M339.5 45.5L334 50L339.5 54.5"/>
+            <text class="m" text-anchor="end" x="90" y="290">só anexa</text>
+            <text class="m" text-anchor="end" x="90" y="306">ao diário</text>
+            <text class="m" text-anchor="middle" transform="translate(383 236) rotate(90)">próxima sessão: resumo inicial</text>
+            <path class="runner halo r-hook" pathLength="1" d="M100 84V376"/>
+            <path class="runner r-hook" pathLength="1" d="M100 84V376"/>
+            <path class="runner halo r-main" pathLength="1" d="M260 84V508"/>
+            <path class="runner r-main" pathLength="1" d="M260 84V508"/>
+            <path class="runner halo r-back" pathLength="1" d="M332 422H364Q372 422 372 414V58Q372 50 364 50H332"/>
+            <path class="runner r-back" pathLength="1" d="M332 422H364Q372 422 372 414V58Q372 50 364 50H332"/>
+            <g class="step node" style="--at:0">
+              <rect class="box" x="28" y="16" width="304" height="68" rx="8"/>
+              <g class="num"><circle cx="28" cy="16" r="12"/><text x="28" y="20.3">1</text></g>
+              <text class="t" x="46" y="45">Você conversa com a IA</text>
+              <text class="s" x="46" y="66">Claude Code ou GitHub Copilot</text>
+            </g>
+            <g class="step node" style="--at:.105">
+              <rect class="box" x="28" y="124" width="144" height="88" rx="8"/>
+              <g class="num"><circle cx="28" cy="124" r="12"/><text x="28" y="128.3">2</text></g>
+              <text class="t" x="46" y="153">Hooks</text>
+              <text class="s" x="46" y="175">guardam sua frase</text>
+              <text class="s" x="46" y="193">literal, sem IA</text>
+            </g>
+            <g class="step node" style="--at:.137">
+              <rect class="box" x="188" y="124" width="144" height="88" rx="8"/>
+              <text class="t" x="204" y="153">Servidor MCP</text>
+              <text class="s" x="204" y="175">4 ferramentas,</text>
+              <text class="s" x="204" y="193">vive só na sessão</text>
+            </g>
+            <g class="step node" style="--at:.318">
+              <rect class="box" x="150" y="252" width="182" height="84" rx="8"/>
+              <g class="num"><circle cx="150" cy="252" r="12"/><text x="150" y="256.3">3</text></g>
+              <text class="t" x="168" y="281">Portão de escrita</text>
+              <text class="s" x="168" y="302">recusa segredo,</text>
+              <text class="s" x="168" y="320">retém o suspeito</text>
+            </g>
+            <g class="step node" style="--at:.493">
+              <rect class="box" x="28" y="376" width="304" height="92" rx="8"/>
+              <g class="num"><circle cx="28" cy="376" r="12"/><text x="28" y="380.3">4</text></g>
+              <text class="t" x="46" y="405">Cofre, uma pasta sua</text>
+              <text class="m lt" style="--at:.493" x="46" y="429">memories/ · um .md por memória</text>
+              <text class="m lt" style="--at:.26" x="46" y="449">.omnimind/journal/ · o diário</text>
+            </g>
+            <g class="step node" style="--at:.68">
+              <rect class="box" x="28" y="508" width="304" height="68" rx="8"/>
+              <g class="num"><circle cx="28" cy="508" r="12"/><text x="28" y="512.3">5</text></g>
+              <text class="t" x="46" y="537">O app mostra ao vivo</text>
+              <text class="s" x="46" y="558">Atividade, com desfazer</text>
+            </g>
+          </svg>
+        </figure>
+        <div>
+          <ol class="steps">
+            <li><b>Você conversa com a IA.</b><span>No Claude Code ou no GitHub Copilot, como já usa. No início da sessão, um hook entrega um resumo curto do que o cofre sabe.</span></li>
+            <li><b>Hooks e MCP trabalham em paralelo.</b><span>Quando você corrige algo, o hook grava a frase literal no diário. Ele só anexa e nunca bloqueia o cliente. O servidor MCP nasce com a sessão e morre com ela.</span></li>
+            <li><b>O portão decide.</b><span>Segredo é recusado. Texto que parece instrução para a IA fica em revisão. O resto entra com a autoridade que a citação sustenta.</span></li>
+            <li><b>A memória vira um arquivo.</b><span>Markdown comum, gravado por rename atômico. O evento vai para o diário com o texto de antes e o de depois.</span></li>
+            <li><b>O app mostra na hora.</b><span>A tela Atividade lista o que cada sessão mudou. Desfazer vale para um evento ou para a sessão inteira.</span></li>
+          </ol>
+          <div class="table" style="margin-top:40px">
+            <table>
+              <caption>As quatro ferramentas que a IA recebe pelo MCP.</caption>
+              <thead><tr><th scope="col">Ferramenta</th><th scope="col">Para quê</th></tr></thead>
+              <tbody>
+                <tr><td><code>memory_search</code></td><td>Buscar em notas e memórias, com origem, estado e cobertura</td></tr>
+                <tr><td><code>memory_read</code></td><td>Abrir o texto inteiro. Segredos saem redigidos</td></tr>
+                <tr><td><code>memory_write</code></td><td>Gravar, editar, substituir, arquivar</td></tr>
+                <tr><td><code>memory_agenda</code></td><td>Listar o trabalho de consolidação pendente</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="block">
+        <h3>O portão de escrita</h3>
+        <p class="sub">App, CLI, MCP e hooks gravam memória por um único caminho, <code>Brain::apply</code>. As regras são código, não um pedido ao modelo.</p>
+        <div class="split wide" style="margin-top:32px">
+          <figure class="dg">
+            <svg viewBox="0 0 440 688" role="img" aria-labelledby="gate-t gate-d">
+              <title id="gate-t">O portão de escrita</title>
+              <desc id="gate-d">O pedido de escrita tem o texto bruto inspecionado. Com segredo, é recusado e nada é gravado. Se parece instrução e não veio de você, fica em revisão. O resto recebe autoridade, é gravado no disco e vira um evento no diário.</desc>
+              <path class="wire" d="M121 80V107M121 172V199M121 264V291M121 376V403M121 488V515M121 580V607"/>
+              <path class="head" d="M116.5 101L121 106.5L125.5 101M116.5 193L121 198.5L125.5 193M116.5 285L121 290.5L125.5 285M116.5 397L121 402.5L125.5 397M116.5 509L121 514.5L125.5 509M116.5 601L121 606.5L125.5 601"/>
+              <path class="wire warn" d="M226 232H261"/><path class="head warn" d="M255 227.5L260.5 232L255 236.5"/>
+              <path class="wire hold" d="M226 334H261"/><path class="head hold" d="M255 329.5L260.5 334L255 338.5"/>
+              <text class="m f-warn" text-anchor="middle" x="243" y="224">sim</text>
+              <text class="m f-hold" text-anchor="middle" x="243" y="326">sim</text>
+              <text class="m" x="131" y="283">não</text>
+              <text class="m" x="131" y="395">não</text>
+              <g class="node">
+                <rect class="box" x="16" y="16" width="210" height="64" rx="8"/>
+                <text class="t" x="32" y="43">Pedido de escrita</text>
+                <text class="m" x="32" y="64">app · CLI · MCP · hooks</text>
+              </g>
+              <g class="node">
+                <rect class="box" x="16" y="108" width="210" height="64" rx="8"/>
+                <text class="t" x="32" y="135">Inspeção do texto</text>
+                <text class="s" x="32" y="156">bruto, em todos os campos</text>
+              </g>
+              <g class="node">
+                <rect class="box ask" x="16" y="200" width="210" height="64" rx="8"/>
+                <text class="t" x="32" y="227">Tem segredo?</text>
+                <text class="s" x="32" y="248">chave, token ou senha</text>
+              </g>
+              <g class="node">
+                <rect class="box warn" x="262" y="200" width="162" height="64" rx="8"/>
+                <text class="t f-warn" x="278" y="227">Recusada</text>
+                <text class="s" x="278" y="248">nada é gravado</text>
+              </g>
+              <g class="node">
+                <rect class="box ask" x="16" y="292" width="210" height="84" rx="8"/>
+                <text class="t" x="32" y="319">Parece instrução?</text>
+                <text class="s" x="32" y="340">ordem para a IA, invisível</text>
+                <text class="s" x="32" y="358">ou origem externa</text>
+              </g>
+              <g class="node">
+                <rect class="box hold" x="262" y="292" width="162" height="84" rx="8"/>
+                <text class="t f-hold" x="278" y="319">Em revisão</text>
+                <text class="s" x="278" y="340">gravada, mas a IA</text>
+                <text class="s" x="278" y="358">não usa até você ver</text>
+              </g>
+              <g class="node">
+                <rect class="box" x="16" y="404" width="210" height="84" rx="8"/>
+                <text class="t" x="32" y="431">Autoridade</text>
+                <text class="s" x="32" y="452">sua, com citação literal;</text>
+                <text class="s" x="32" y="470">senão, da IA, com aviso</text>
+              </g>
+              <g class="node">
+                <rect class="box" x="16" y="516" width="210" height="64" rx="8"/>
+                <text class="t" x="32" y="543">Grava no disco</text>
+                <text class="s" x="32" y="564">temporário, sync e rename</text>
+              </g>
+              <g class="node">
+                <rect class="box acc" x="16" y="608" width="210" height="64" rx="8"/>
+                <text class="t" x="32" y="635">Diário e índice</text>
+                <text class="s" x="32" y="656">um evento; a busca já acha</text>
+              </g>
+              <path class="wire" d="M250 404H244V672H250" style="stroke:var(--line)"/>
+              <text class="s" x="262" y="523">Daqui em diante,</text>
+              <text class="s" x="262" y="541">tudo tem evento no</text>
+              <text class="s" x="262" y="559">diário e pode ser</text>
+              <text class="s" x="262" y="577">desfeito.</text>
+            </svg>
+          </figure>
+          <div>
+            <div class="table" style="margin-top:0">
+              <table>
+                <thead><tr><th scope="col">Resultado</th><th scope="col">Quando</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>Recusada</strong></td><td>O texto traz um segredo: formato conhecido de chave ou token, ou <code>senha=</code>. O conteúdo não vai nem para o diário.</td></tr>
+                  <tr><td><strong>Em&nbsp;revisão</strong></td><td>Não foi você quem escreveu, e o texto traz caractere invisível, letra disfarçada ou algo que parece instrução: ignorar regras, esconder algo de você, comando de shell, envio de chaves. Também quando a origem é externa.</td></tr>
+                  <tr><td><strong>Memória da&nbsp;IA</strong></td><td>A escrita passou, mas sem uma citação sua que a sustente. Entra com aviso.</td></tr>
+                  <tr><td><strong>Memória sua</strong></td><td>Uma citação literal sua, de ao menos 20 caracteres e registrada no diário, sustenta o texto.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p style="margin-top:24px">A autoridade vem do transporte e do diário, nunca de um campo da requisição. Uma memória marcada à mão como sua perde esse status se o arquivo não tiver vindo de uma escrita do produto.</p>
+            <p class="sub">O portão é triagem, não garantia. Na última rodada de testes hostis, anterior ao redesenho, 5 de 108 variações passaram. Por isso a defesa principal é a origem: memória em revisão fica fora da busca, e só você pode liberar.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="graph" aria-labelledby="graph-title">
+  <div class="wrap">
+    <p class="label" aria-hidden="true">Grafo</p>
+    <div class="body">
+      <h2 id="graph-title">Três vistas do mesmo cofre.</h2>
+      <p class="intro">O app abre no Grafo. As três vistas usam os mesmos dados e as mesmas sete cores de tema, sempre com o nome do tema ao lado. Quando a IA lê algo, você vê na hora.</p>
+
+      <div class="views">
+        <article class="view">
+          <figure class="shot"><img src="images/graph-bundles.png" width="2880" height="1800" loading="lazy" alt="Grafo em Feixes: sete temas ao redor de um círculo, cada um com sua cor e seu nome, e as ligações entre itens agrupadas em feixes que cruzam o centro."></figure>
+          <h3>Feixes</h3>
+          <p>Temas ao redor de um círculo, com as ligações agrupadas por tema. Mostra como os assuntos se relacionam sem virar novelo.</p>
+          <span class="ref">Hierarchical edge bundling, Holten 2006</span>
+        </article>
+        <article class="view">
+          <figure class="shot"><img src="images/graph-roots.png" width="2880" height="1800" loading="lazy" alt="Grafo em Raízes: cada tema cresce do centro como uma raiz colorida, com ramos mais grossos onde há mais uso."></figure>
+          <h3>Raízes</h3>
+          <p>Cada tema cresce do centro. Os ramos engrossam com o uso, e a leitura da IA acende o caminho.</p>
+          <span class="ref">Space colonization, Runions 2007</span>
+        </article>
+        <article class="view feature">
+          <div class="text">
+            <h3>Universo <span class="tag">novo</span></h3>
+            <p>O cofre em três dimensões. Cada corpo é uma nota ou uma memória. Assuntos parecidos ficam perto, e as linhas de constelação são as ligações.</p>
+            <p>Quando a IA lê, uma luz viaja de um corpo ao seguinte.</p>
+            <ul class="gestures">
+              <li><b>Arrastar</b><span>gira o universo</span></li>
+              <li><b>Rolar</b><span>aproxima e afasta</span></li>
+            </ul>
+          </div>
+          <div class="shots">
+            <figure>
+              <div class="shot"><img src="images/graph-universe.png" width="2880" height="1800" loading="lazy" alt="Grafo na vista Universo: notas e memórias como corpos num espaço em três dimensões, agrupados por assunto, em sete cores de tema, ligados por linhas finas de constelação."></div>
+              <figcaption>O cofre inteiro, com cada tema no seu canto do espaço.</figcaption>
+            </figure>
+            <figure>
+              <div class="shot"><img src="images/graph-universe-reading.png" width="2880" height="1800" loading="lazy" alt="Vista Universo durante uma leitura da IA: uma luz percorre a linha entre dois corpos, e o caminho lido fica aceso."></div>
+              <figcaption>Durante uma leitura: a luz liga um corpo ao seguinte.</figcaption>
+            </figure>
+          </div>
+        </article>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="architecture" aria-labelledby="architecture-title">
+  <div class="wrap">
+    <p class="label" aria-hidden="true">Arquitetura</p>
+    <div class="body">
+      <h2 id="architecture-title">Rust do disco à GPU. Nada roda com o app fechado.</h2>
+      <p class="intro">Seis crates num workspace. A interface é própria: winit na janela, wgpu na GPU e cosmic-text no texto, sem framework de UI e sem WebView. Não há banco de dados nem processo em segundo plano.</p>
+
+      <div class="block split wide">
+        <figure class="dg">
+          <svg viewBox="0 0 420 566" role="img" aria-labelledby="crates-t crates-d">
+            <title id="crates-t">Crates e dependências</title>
+            <desc id="crates-d">O crate app depende de gfx, graph, ed e core. O crate cli depende de core. O core lê e grava o cofre no disco. Os crates graph, ed e core não conhecem janela nem GPU.</desc>
+            <path class="wire" d="M58 110V169M150 110V169M242 110V169M292 110V305M360 110V305M210 392V439"/>
+            <path class="head" d="M53.5 163L58 168.5L62.5 163M145.5 163L150 168.5L154.5 163M237.5 163L242 168.5L246.5 163M287.5 299L292 304.5L296.5 299M355.5 299L360 304.5L364.5 299M205.5 433L210 438.5L214.5 433"/>
+            <text class="m" x="16" y="24">casca</text>
+            <text class="m" x="16" y="296">miolo</text>
+            <text class="m" x="222" y="420">lê e grava</text>
+            <g class="node">
+              <rect class="box" x="16" y="34" width="284" height="76" rx="8"/>
+              <text class="k" x="32" y="63">app</text>
+              <text class="s" x="32" y="86">janela, telas e vista do grafo</text>
+            </g>
+            <g class="node">
+              <rect class="box" x="316" y="34" width="88" height="76" rx="8"/>
+              <text class="k" x="330" y="63">cli</text>
+              <text class="s" x="330" y="82">CLI, MCP</text>
+              <text class="s" x="330" y="98">e hooks</text>
+            </g>
+            <g class="node">
+              <rect class="box" x="16" y="170" width="84" height="76" rx="8"/>
+              <text class="k" x="28" y="198">gfx</text>
+              <text class="s" x="28" y="218">GPU, cena</text>
+              <text class="s" x="28" y="234">e glifos</text>
+            </g>
+            <g class="node">
+              <rect class="box soft" x="108" y="170" width="84" height="76" rx="8"/>
+              <text class="k" x="120" y="198">graph</text>
+              <text class="s" x="120" y="218">geometria</text>
+              <text class="s" x="120" y="234">pura</text>
+            </g>
+            <g class="node">
+              <rect class="box soft" x="200" y="170" width="84" height="76" rx="8"/>
+              <text class="k" x="212" y="198">ed</text>
+              <text class="s" x="212" y="218">texto e</text>
+              <text class="s" x="212" y="234">Markdown</text>
+            </g>
+            <g class="node">
+              <rect class="box soft acc" x="16" y="306" width="388" height="86" rx="8"/>
+              <text class="k" x="32" y="335">core</text>
+              <text class="s" x="32" y="357">cofre, diário, busca e ciclo de vida</text>
+              <text class="s" x="32" y="375">um único caminho de escrita</text>
+            </g>
+            <g class="node">
+              <rect class="box" x="16" y="440" width="388" height="62" rx="8" stroke-dasharray="4 5"/>
+              <text class="t" x="32" y="466">Cofre no disco</text>
+              <text class="m" x="32" y="487">notes/ · memories/ · .omnimind/</text>
+            </g>
+            <rect class="box" x="16" y="522" width="14" height="14" rx="3"/>
+            <text class="s" x="38" y="534">casca: janela, GPU, stdio e processos</text>
+            <rect class="box soft" x="16" y="544" width="14" height="14" rx="3"/>
+            <text class="s" x="38" y="556">miolo: sem janela e sem GPU</text>
+          </svg>
+        </figure>
+        <div>
+          <h3>Casca fina, miolo testável</h3>
+          <p style="margin-top:10px">As regras moram em crates que não conhecem janela nem GPU. O <code>core</code> concentra cofre, diário, busca e o único caminho de escrita. O <code>graph</code> recebe itens e ligações e devolve fitas de triângulos. O <code>ed</code> é o modelo do editor, feito para cada tecla ser testada contra um oráculo.</p>
+          <p>A casca liga isso ao mundo. O <code>app</code> cuida da janela e das telas. O <code>cli</code> é o binário <code>omnimind</code>: linha de comando, servidor MCP por stdio e hooks. Os dois usam o mesmo <code>core</code>, então o app e a IA seguem as mesmas regras.</p>
+          <dl class="crates">
+            <div><dt>core</dt><dd>Cofre, diário, busca, ciclo de vida e portão de escrita. Sem tokio e sem SQLite.</dd></div>
+            <div><dt>cli</dt><dd>CLI, servidor MCP e hooks num binário só.</dd></div>
+            <div><dt>app</dt><dd>Telas, vista do grafo e janela nativa.</dd></div>
+            <div><dt>gfx</dt><dd>GPU, cena instanciada e texto com atlas de glifos. Não sabe o que é uma nota.</dd></div>
+            <div><dt>graph</dt><dd>Geometria das vistas do grafo. Roda fora do quadro.</dd></div>
+            <div><dt>ed</dt><dd>Texto, seleção, desfazer e Markdown linha a linha.</dd></div>
+          </dl>
+        </div>
+      </div>
+
+      <div class="block split wide">
+        <figure class="dg">
+          <svg class="threads" viewBox="0 0 420 280" role="img" aria-labelledby="threads-t threads-d">
+            <title id="threads-t">Thread principal e thread de dados</title>
+            <desc id="threads-d">A thread principal só desenha quadros quando chega um evento. A thread de dados faz o trabalho de disco e avisa por mensagem. Entre um evento e outro, o app não desenha nenhum quadro.</desc>
+            <text class="t" x="24" y="28">Thread principal</text>
+            <text class="m" text-anchor="end" x="396" y="28">eventos, quadro, GPU</text>
+            <path class="lane" d="M24 92H396M24 204H396"/>
+            <path class="tick" d="M60 72V92M66 72V92M72 72V92M78 72V92M84 72V92M90 72V92M96 72V92M168 72V92M174 72V92M180 72V92M186 72V92M300 72V92M306 72V92M312 72V92M318 72V92M324 72V92M330 72V92M336 72V92M342 72V92M348 72V92M354 72V92M360 72V92"/>
+            <text class="m" x="58" y="62">tecla</text>
+            <text class="m" x="166" y="62">salvo</text>
+            <text class="m" text-anchor="end" x="396" y="62">o grafo acende</text>
+            <text class="m" text-anchor="middle" x="243" y="86">0 quadros</text>
+            <rect class="work" x="72" y="180" width="90" height="24" rx="4"/>
+            <rect class="work" x="240" y="180" width="54" height="24" rx="4"/>
+            <path class="wire" d="M72 98V173M165 174V99M297 174V99"/>
+            <path class="head" d="M67.5 167.5L72 173L76.5 167.5M160.5 104.5L165 99L169.5 104.5M292.5 104.5L297 99L301.5 104.5"/>
+            <text class="m" x="80" y="140">Cmd</text>
+            <text class="m" x="173" y="140">Msg</text>
+            <text class="m" x="305" y="140">Msg</text>
+            <text class="m" x="72" y="224">grava a nota</text>
+            <text class="m" x="240" y="224">lê o diário</text>
+            <text class="t" x="24" y="260">Thread de dados</text>
+            <text class="m" text-anchor="end" x="396" y="260">única dona do cofre</text>
+            <path class="now" d="M24 42V238"/>
+          </svg>
+          <figcaption>Cada risco é um quadro. Sem evento, não há risco.</figcaption>
+        </figure>
+        <div>
+          <h3>O quadro nunca espera o disco</h3>
+          <p style="margin-top:10px">A thread principal só trata eventos e desenha. Uma thread de dados é a única dona do cofre: lê o diário, grava notas e devolve instantâneos prontos para desenhar. As duas conversam por canais.</p>
+          <p>O app redesenha sob demanda. Parado, ele não gasta um quadro: nem o cursor pisca. A geometria do grafo é montada em outra thread e desenhada numa textura que só muda quando os dados mudam.</p>
+          <p>A busca usa um índice invertido em memória, com BM25F e stemming em português e inglês, sem embeddings. Cada processo tem o seu, e o arquivo de instantâneo é descartável.</p>
+        </div>
+      </div>
+
+      <div class="block">
+        <h3>Números medidos</h3>
+        <div class="table">
+          <table>
+            <caption>Medido num MacBook Air M2, com cofre fictício de 5.000 notas e 800 memórias. Fonte: <code>docs/qa/limits.md</code>, no repositório. O grafo foi medido sem janela, em Feixes e Raízes. Feixes com 10.000 itens passa do orçamento de 16,67 ms: p99 de 21,10 ms.</caption>
+            <thead><tr><th scope="col">Medida</th><th scope="col" class="n">Limite</th><th scope="col" class="n">Medido</th></tr></thead>
+            <tbody>
+              <tr><td>App instalado</td><td class="n lim">100 MB</td><td class="n"><b>12 MB</b></td></tr>
+              <tr><td>Abrir o app, até o primeiro quadro</td><td class="n lim">2 s</td><td class="n"><b>0,59 s</b></td></tr>
+              <tr><td>Memória do app em uso</td><td class="n lim">500 MB</td><td class="n"><b>143 MB</b></td></tr>
+              <tr><td>Servidor da IA em repouso</td><td class="n lim">150 MB</td><td class="n"><b>102,6 MB</b></td></tr>
+              <tr><td>Busca, p95</td><td class="n lim">100 ms</td><td class="n"><b>32,8 ms</b></td></tr>
+              <tr><td>Escrita de memória, p95</td><td class="n lim"></td><td class="n"><b>32,2 ms</b></td></tr>
+              <tr><td>Janela real, 300 quadros, intervalo p99</td><td class="n lim">60 Hz</td><td class="n"><b>17,05 ms</b></td></tr>
+              <tr><td>Quadros em repouso, em 4 s</td><td class="n lim">0</td><td class="n"><b>0</b></td></tr>
+              <tr><td>Grafo com 2.000 itens, Feixes, p99</td><td class="n lim">16,67 ms</td><td class="n"><b>7,28 ms</b></td></tr>
+              <tr><td>Grafo com 2.000 itens, Raízes, p99</td><td class="n lim">16,67 ms</td><td class="n"><b>5,24 ms</b></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="safety" aria-labelledby="safety-title">
+  <div class="wrap">
+    <p class="label" aria-hidden="true">Segurança e controle</p>
+    <div class="body">
+      <h2 id="safety-title">A IA grava. Você vê, corrige e desfaz.</h2>
+      <p class="intro">Em vez de pedir aprovação antes de cada memória, o Omnimind deixa a IA gravar e mostra tudo o que mudou. O que não serve, você desfaz.</p>
+
+      <dl class="rules">
+        <div><dt>O disco é a verdade</dt><dd>Notas e memórias são arquivos <code>.md</code> e valem por si. Dá para ler, editar e versionar com qualquer ferramenta. Apagar a pasta <code>.omnimind/</code> perde histórico e índice, nunca conhecimento.</dd></div>
+        <div><dt>Desfazer por evento ou por sessão</dt><dd>Cada mudança de memória vira um evento no diário, com o texto de antes e o de depois. Desfaça um evento ou a sessão inteira, pelo app ou com <code>omnimind undo</code>.</dd></div>
+        <div><dt>Fila de revisão</dt><dd>Memória suspeita fica em revisão: está no disco, mas a IA ainda não usa. Só você libera, pelo app ou pela linha de comando.</dd></div>
+        <div><dt>Nada sai da máquina</dt><dd>Sem conta, sem nuvem e sem serviço ligado com o app fechado. O servidor MCP nunca chama um modelo. O que a IA lê do cofre entra no contexto da sessão dela, como qualquer arquivo do projeto.</dd></div>
+      </dl>
+
+      <figure class="block">
+        <div class="shot"><img src="images/activity.png" width="2880" height="1800" loading="lazy" alt="Tela Atividade do Omnimind: sessões do Claude Code e do GitHub Copilot em ordem de data, com o que cada uma adicionou, atualizou, mesclou ou arquivou, e o botão Desfazer sessão ao lado de cada sessão."></div>
+        <figcaption>Atividade: o que cada sessão mudou, com Desfazer sessão ao lado. Dados de um cofre de exemplo.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="install" aria-labelledby="install-title">
+  <div class="wrap">
+    <p class="label" aria-hidden="true">Instalar</p>
+    <div class="body">
+      <h2 id="install-title">Baixe, abra e conecte.</h2>
+      <p class="intro">Você precisa do Omnimind e de uma IA de código: Claude Code ou GitHub Copilot.</p>
+
+      <ol class="steps install">
+        <li>
+          <b>Baixe o pacote do seu sistema.</b>
+          <p>Os binários ficam na <a href="https://github.com/JonathanSantos/omnimind/releases/latest">página de releases</a>.</p>
+          <div class="table">
+            <table>
+              <thead><tr><th scope="col">Sistema</th><th scope="col">Estado</th></tr></thead>
+              <tbody>
+                <tr><td>macOS</td><td>Plataforma de referência, em Mac com Apple Silicon. É onde o app foi medido e testado.</td></tr>
+                <tr><td>Windows</td><td>Novo. Gerado pelo GitHub Actions, ainda sem teste em máquina real.</td></tr>
+                <tr><td>Linux</td><td>Novo. Gerado pelo GitHub Actions, ainda sem teste em máquina real.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </li>
+        <li>
+          <b>Abra o app e clique em Começar.</b>
+          <p>No Mac, arraste <code>Omnimind.app</code> para Aplicativos antes de conectar: a conexão guarda o caminho do app. O cofre nasce em <code>~/Omnimind</code>.</p>
+        </li>
+        <li>
+          <b>Ligue o Claude Code.</b>
+          <p>Em todos os projetos de uma vez:</p>
+          <div class="cmd"><pre tabindex="0">/Applications/Omnimind.app/Contents/MacOS/omnimind connect claude-code --global --brain ~/Omnimind</pre></div>
+          <p class="cmd-label">Ou só no projeto da pasta atual:</p>
+          <div class="cmd"><pre tabindex="0">/Applications/Omnimind.app/Contents/MacOS/omnimind connect claude-code --brain ~/Omnimind --project .</pre></div>
+        </li>
+        <li>
+          <b>Ou ligue o GitHub Copilot.</b>
+          <p>Na pasta do projeto:</p>
+          <div class="cmd"><pre tabindex="0">/Applications/Omnimind.app/Contents/MacOS/omnimind connect copilot --brain ~/Omnimind --project .</pre></div>
+          <p class="cmd-label">Use <code>--print</code> para ver o que mudaria sem gravar nada. Cada arquivo alterado ganha uma cópia de segurança ao lado. No Windows e no Linux, troque o caminho pelo do binário <code>omnimind</code> que veio no pacote.</p>
+        </li>
+        <li>
+          <b>Para desligar.</b>
+          <p>Sai só o que o Omnimind colocou. O cofre não muda.</p>
+          <div class="cmd"><pre tabindex="0">/Applications/Omnimind.app/Contents/MacOS/omnimind disconnect claude-code --global</pre></div>
+        </li>
+      </ol>
+
+      <aside class="note" aria-labelledby="state-title">
+        <h3 id="state-title">Estado atual</h3>
+        <ul>
+          <li>Versão inicial, feita para uso pessoal.</li>
+          <li>Hooks e MCP no Claude Code foram testados em sessões reais automáticas. O modo interativo ainda falta testar.</li>
+          <li>O GitHub Copilot conecta, mas falta testar no produto real.</li>
+          <li>Nota apagada vai para a lixeira do cofre, e o app ainda não a traz de volta.</li>
+        </ul>
+      </aside>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <a class="brand" href="#top">
+      <svg viewBox="0 0 64 64" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3.8" stroke-linecap="round" width="18" height="18"><path d="M52 10C32 27 32 37 52 54M41 7C32 25 32 39 41 57M32 6V58M23 7C32 25 32 39 23 57M12 10C32 27 32 37 12 54"/></svg>
+      Omnimind
+    </a>
+    <p>Código sob licença MIT. Fontes Familjen Grotesk e Sometype Mono, sob a SIL Open Font License 1.1: <a href="fonts/OFL-FamiljenGrotesk.txt">Familjen Grotesk</a>, <a href="fonts/OFL-SometypeMono.txt">Sometype Mono</a>.</p>
+    <p class="right"><a href="https://github.com/JonathanSantos/omnimind">github.com/JonathanSantos/omnimind</a></p>
+  </div>
+</footer>
+
+<script>
+// Botão de copiar nos comandos. Sem JavaScript, o comando continua visível e selecionável.
+(function () {
+  if (!navigator.clipboard) return;
+  document.querySelectorAll(".cmd").forEach(function (box) {
+    var button = document.createElement("button");
+    button.type = "button";
+    button.textContent = "Copiar";
+    button.addEventListener("click", function () {
+      navigator.clipboard.writeText(box.querySelector("pre").textContent.trim()).then(function () {
+        button.textContent = "Copiado";
+        setTimeout(function () { button.textContent = "Copiar"; }, 1600);
+      });
+    });
+    box.appendChild(button);
+  });
+})();
+</script>
+</body>
+</html>

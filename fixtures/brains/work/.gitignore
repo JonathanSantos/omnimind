@@ -1,0 +1,5 @@
+# Local to this machine. Notes and memories stay versioned.
+.index/
+.sessions/
+.journal/
+.edgemind.lock

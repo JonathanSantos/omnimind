@@ -1,0 +1,50 @@
+"""Remaining checklist items: stale/expired, reingest, CAS, repeat-note, note_not_read, sleep undo, protocol, memory growth."""
+import sys,time,os; sys.path.insert(0,'.')
+from vz import *
+b=fresh('t8'); (b/'notes').mkdir(exist_ok=True)
+(b/'notes/n.md').write_text('# Runbook\nDeploy só de terça a quinta. Aprovação do Ricardo é obrigatória. Âncora PERS-ZK47Q.\n')
+m=Mcp(b,session='s1')
+print('note_not_read:',m.write(type='decision',title='Deploy terça a quinta',summary='Deploy só de terça a quinta',note='notes/n.md',origin_kind='note').get('reason'))
+s=m.search('deploy terça'); print('after only search:',m.write(type='decision',title='Deploy terça a quinta',summary='Deploy só de terça a quinta',note='notes/n.md').get('reason'))
+r=m.read('notes/n.md',distill=True); print('covered',r.get('covered'))
+w=m.write(type='decision',title='Deploy terça a quinta',summary='Deploy só de terça a quinta, com aprovação do Ricardo',body='Fonte: runbook.',note='notes/n.md',origin_kind='note'); print(w.get('outcome'),w.get('rule'))
+print('pref w/o quote:',m.write(type='preference',title='Gosta de café',summary='A pessoa gosta de café').get('reason'))
+print('copy of note:',m.write(type='concept',title='Copia',summary=(b/'notes/n.md').read_text()*1,body=(b/'notes/n.md').read_text()*3,note='notes/n.md').get('reason'))
+print('note changed -> stale:')
+(b/'notes/n.md').write_text('# Runbook\nDeploy só às quartas. Aprovação da Marina é obrigatória.\n'); time.sleep(.35)
+r=m.search('deploy'); print([(x['title'],x.get('state'),x.get('warning')) for x in r['results']])
+print('brief mentions stale fact:', 'terça' in briefing(b))
+print(m.write(type='decision',title='Deploy quartas',summary='Deploy só às quartas',note='notes/n.md').get('reason'))
+m.read('notes/n.md',distill=True)
+r=m.write(type='decision',title='Deploy só quartas',summary='Deploy só às quartas com aprovação da Marina',body='fonte runbook novo',note='notes/n.md',origin_kind='note'); print(r.get('outcome'),r.get('reason'),[ (x['title'],x['state']) for x in r.get('neighbors',[])])
+r=m.write(type='decision',title='Deploy só quartas',summary='Deploy só às quartas com aprovação da Marina',body='fonte runbook novo',note='notes/n.md',origin_kind='note',supersedes=[w['id']]); print(r.get('outcome'),r.get('reason'))
+print('expired:')
+e=m.write(type='episode',title='Promo de novembro',summary='promo válida até 2020',body='x',expires='2020-01-01',origin_kind='session'); print(e.get('outcome'),e.get('reason')); r=m.search('promo novembro'); print([x['title'] for x in r['results']],r['coverage']['hidden'],'brief','Promo' in briefing(b)); print('read',m.read(e['id']).get('status'),'old',m.read(e['id'],include_old=True).get('status'))
+print('bad expires',m.write(type='episode',title='q',summary='q',expires='31/12/2026').get('reason'), m.write(type='episode',title='q2',summary='q',expires='2026-13-45').get('reason'))
+print('session growth:')
+x=Mcp(b,session='grow'); o=[x.write(type='episode',title=f'Crescimento unico {i} {i*31}',summary=f'evento {i*97} singular {i}',body=f'b{i}',origin_kind='session',key=f'g{i}').get('reason') or 'ok' for i in range(43)]; print(o[-4:]); x.close()
+print('same session id across processes:'); y=Mcp(b,session='grow'); print(y.write(type='episode',title='Burla do teto',summary='tenta burlar',body='b',origin_kind='session').get('reason')); y.close()
+print('new session id = bypass of cap (agent controls --session? no: transport)')
+print('limits:',m.write(type='concept',title='t'*201,summary='s').get('reason'),m.write(type='concept',title='t',summary='s'*401).get('reason'),m.write(type='concept',title='t',body='s'*20001).get('reason'))
+r=m.write(type='concept',title='Muitos aliases',summary='ok',aliases=[f'a{i}' for i in range(40)],tags=[f'tag{i}' for i in range(30)],origin_kind='session'); print(r.get('outcome'),len(r.get('tags',[])),r.get('warnings'))
+print('protocol:')
+import subprocess as sp
+msgs=[b'{bad json\n',b'\xff\xfe\n',b'[]\n',b'[{"jsonrpc":"2.0","id":1,"method":"ping"}]\n',b'{"jsonrpc":"1.0","id":1,"method":"ping"}\n',b'{"jsonrpc":"2.0","id":{"a":1},"method":"ping"}\n',b'{"jsonrpc":"2.0","id":2,"method":"nope"}\n',b'{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"x"}}\n',b'{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"memory_search","arguments":"{\\"query\\":\\"x\\"}"}}\n',b'{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"memory_search","arguments":5}}\n',b'{"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":1}}\n',b'{"jsonrpc":"2.0","id":6,"result":{}}\n',b'{"jsonrpc":"2.0","id":7,"method":"ping","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"1999-01-01"}}}\n',b'{"jsonrpc":"2.0","id":8,"method":"server/discover"}\n',b'{"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"memory_search","arguments":{}}}\n',b'{"jsonrpc":"2.0","id":10,"method":"tools/call","params":{"name":"memory_read","arguments":{"id":""}}}\n',b'{"jsonrpc":"2.0","id":11,"method":"tools/call","params":{"name":"memory_write","arguments":{"action":"write","type":"concept","title":"\\u0000nul","summary":"x"}}}\n',b'{"jsonrpc":"2.0","id":12,"method":"tools/call","params":{"name":"memory_search","arguments":{"query":"'+b'a'*2000000+b'"}}}\n',b'{"jsonrpc":"2.0","id":13,"method":"ping"}\n']
+big=b'{"jsonrpc":"2.0","id":14,"method":"ping","x":"'+b'a'*(17*1024*1024)+b'"}\n'
+p=sp.run([VZ,'mcp','--brain',str(b),'--client','qa'],input=b''.join(msgs)+big+b'{"jsonrpc":"2.0","id":15,"method":"ping"}\n',capture_output=True,env=env(),timeout=60)
+for l in p.stdout.splitlines():
+    try:
+        j=json.loads(l); print(' ',j.get('id'),str(j.get('error') or {k:(v if k in('isError',) else '…') for k,v in j.get('result',{}).items()})[:120])
+    except Exception as ex: print(' NONJSON',l[:100])
+print(' rc',p.returncode,p.stderr[:200])
+print(m.close())
+print('sleep merge undo:')
+b=fresh('t8b'); mem=b/'memories/decision'; mem.mkdir(parents=True,exist_ok=True)
+H="---\nid: {id}\ntype: decision\ntitle: {t}\nsummary: {s}\nauthority: agent\norigin:\n  kind: session\ncreated: 2026-10-01T00:00:00Z\nupdated: 2026-10-01T00:00:00Z\n---\n{b}\n"
+tx=lambda r:f"O deploy da rota {r} em produção acontece às 10h da manhã de terça-feira conforme combinado com o time de plataforma e registrado na reunião de outubro passado"
+(mem/'a.md').write_text(H.format(id='01JB7Y0000000000000000AAAA',t='Deploy rota A',s='resumo A',b=tx('A'))); (mem/'b.md').write_text(H.format(id='01JB7Y0000000000000000BBBB',t='Deploy rota B',s='resumo B',b=tx('B')))
+o=cli('sleep',brain=b).stdout; print(o)
+ev=[l.split() for l in cli('log','--limit','100',brain=b).stdout.splitlines() if ' merged ' in l]; print(ev)
+print(cli('undo',ev[0][1],brain=b).stdout, [ (p.name,'supersedes' in p.read_text()) for p in mem.glob('*.md')])
+x=Mcp(b); print([y['title'] for y in x.search('deploy rota')['results']]); x.close()
+print(cli('sleep',brain=b).stdout,'re-merges after undo?',[ (p.name,'supersedes: [' in p.read_text()) for p in mem.glob('*.md')])

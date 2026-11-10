@@ -1,0 +1,9 @@
+format = 1
+id = "01M69V0H7DCNY5ZQNETZ0N2J60"
+name = "Pessoal"
+language = ["pt-BR", "en"]
+created_at = "2026-10-31T20:39:25Z"
+
+[ai]
+allowed_clients = ["claude-code"]
+max_read_chars = 20000

@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Omnimind — Grafo</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0f0f0d;--pn:#141412;--ln:#262420;--tx:#e9e5da;--mu:#8e897c;--dm:#5e5a50;--ui:'Instrument Sans',system-ui,sans-serif;--mo:'IBM Plex Mono',ui-monospace,monospace;--sf:'Newsreader',Georgia,serif}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font:13px/1.4 var(--ui)}
+body{display:grid;grid-template-columns:208px 1fr}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+:focus-visible{outline:2px solid var(--tx);outline-offset:2px}
+.side{background:var(--pn);border-right:1px solid var(--ln);padding:18px 12px;display:flex;flex-direction:column}
+.brand{display:flex;align-items:center;gap:9px;padding:0 8px 22px;font:500 17px var(--sf)}
+.nav{display:flex;align-items:center;gap:10px;width:100%;height:34px;padding:0 8px;border-radius:6px;color:var(--mu);text-align:left}
+.nav:hover{background:#1b1a17;color:var(--tx)}
+.nav[aria-current]{background:#22201b;color:var(--tx)}
+.nav svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round}
+.nav i{margin-left:auto;font:400 11px var(--mo);color:var(--dm)}
+.vault{margin-top:auto;padding:12px 8px 0;border-top:1px solid var(--ln);color:var(--mu);font-size:12px}
+.vault b{display:block;color:var(--tx);font-weight:500;font-size:13px}
+.vault code{font:400 11px var(--mo);display:block;margin:2px 0 6px}
+main{display:grid;grid-template-rows:64px 1fr 44px;min-width:0}
+header{display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid var(--ln)}
+h1{font:400 25px/1 var(--sf);margin:0}
+header p{margin:4px 0 0;color:var(--mu);font-size:12px}
+.ctl{display:flex;gap:14px}
+.seg{display:flex;gap:2px;padding:2px;border:1px solid #2c2a24;border-radius:8px}
+.seg button{padding:5px 11px;border-radius:6px;color:var(--mu);display:flex;gap:6px;align-items:baseline}
+.seg button:hover{color:var(--tx)}
+.seg button[aria-pressed=true]{background:#2a2822;color:var(--tx)}
+.seg :focus-visible{outline-offset:-2px}
+.seg i,.mo{font:400 10.5px var(--mo);font-style:normal;color:var(--dm)}
+.stage{position:relative;overflow:hidden}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+canvas:focus-visible{outline-offset:-3px}
+#tip{position:absolute;left:0;top:0;pointer-events:none;opacity:0;transition:opacity .12s;background:#1b1a17;border:1px solid #38352d;border-radius:8px;padding:9px 12px;min-width:200px;max-width:270px;box-shadow:0 10px 28px #0009}
+#tip strong{display:block;font-weight:500;margin:3px 0 5px}
+#tip .mo{color:var(--mu);font-size:11.5px}
+#live{position:absolute;left:22px;bottom:16px;max-width:560px;display:flex;gap:9px;align-items:center;font:400 11.5px var(--mo);color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#live b{color:var(--tx);font-weight:400}
+.dt{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+.d{animation:bl 2.4s infinite}@keyframes bl{50%{opacity:.35}}
+#pn{position:absolute;top:0;right:0;bottom:0;width:330px;background:var(--pn);border-left:1px solid var(--ln);padding:22px;overflow:auto;transform:translateX(100%);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+#pn.on{transform:none}
+#pn h2{font:500 22px/1.2 var(--sf);margin:10px 0 16px;outline:0}
+.tg{display:inline-flex;gap:7px;align-items:center;font:400 10.5px var(--mo);color:var(--mu);text-transform:uppercase;letter-spacing:.07em}
+dl{display:grid;grid-template-columns:96px 1fr;gap:7px 10px;margin:0 0 18px}
+dt{color:var(--mu)}dd{margin:0}
+dd code{font:400 11px var(--mo);color:#c9c4b6;word-break:break-all}
+blockquote{margin:0 0 18px;padding:2px 0 2px 12px;border-left:2px solid;font:400 15.5px/1.45 var(--sf);color:#d6d1c3}
+h3{font:500 10.5px var(--mo);color:var(--mu);text-transform:uppercase;letter-spacing:.08em;margin:0 0 9px}
+.sp{display:flex;align-items:flex-end;gap:2px;height:30px;margin-bottom:20px}.sp b{flex:1;border-radius:1px}
+.cn{display:flex;gap:9px;align-items:center;width:calc(100% + 16px);margin:0 -8px;padding:6px 8px;border-radius:6px;text-align:left}
+.cn:hover{background:#1d1c18}
+.x{position:absolute;top:14px;right:14px;width:28px;height:28px;border-radius:6px;color:var(--mu);font-size:15px}
+.x:hover{background:#1d1c18;color:var(--tx)}
+footer{display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-top:1px solid var(--ln);font:400 12px var(--mo);color:var(--mu)}
+footer b{color:var(--tx);font-weight:500}footer s{text-decoration:none;color:var(--dm);margin:0 7px}
+.lg{display:flex;align-items:center;gap:7px}.lg em{font-style:normal;color:var(--dm);margin-left:12px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<nav class="side" aria-label="Principal">
+  <div class="brand"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="#e9e5da" stroke-width="1.4" stroke-linecap="round"><circle cx="11" cy="11" r="9.5"/><path d="M11 11 17.5 6M11 11 4.5 15.5M11 11 14.5 19"/><circle cx="11" cy="11" r="2" fill="#e9e5da"/></svg>Omnimind</div>
+  <div id="nav"></div>
+  <div class="vault">Cofre<b>Trabalho</b><code>~/Cofres/trabalho</code>Local · nada sai deste computador</div>
+</nav>
+<main>
+  <header><div><h1>Grafo</h1><p>O cofre inteiro, com a IA lendo nele</p></div><div class="ctl" id="ctl"></div></header>
+  <section class="stage">
+    <canvas id="cv" tabindex="0" aria-label="Grafo do cofre. Setas percorrem os itens, Enter abre o detalhe, Esc fecha."></canvas>
+    <div id="tip"></div><div id="live"></div><aside id="pn" aria-label="Detalhe do item"></aside>
+  </section>
+  <footer><span id="cnt"></span><span class="lg"><svg width="9" height="9"><circle cx="4.5" cy="4.5" r="4" fill="currentColor"/></svg>Nota <svg width="9" height="9"><path d="M4.5 0 9 4.5 4.5 9 0 4.5z" fill="currentColor"/></svg>Memória <em>ramos mais grossos = mais lidos nos últimos 30 dias</em></span></footer>
+</main>
+<script>
+const $=s=>document.querySelector(s),TAU=Math.PI*2,lerp=(a,b,t)=>a+(b-a)*t,cl=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)),ez=t=>1-(1-t)**3;
+const rng=s=>()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+const rnd=rng(1984),pick=a=>a[Math.floor(rnd()*a.length)],RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const UI="'Instrument Sans',sans-serif",MO="'IBM Plex Mono',monospace";
+const NT=['decisão','rascunho','caso de borda','o que aprendi','checklist','pendências','comparativo','por que mudamos','exemplo mínimo','armadilhas','referências','resumo'];
+const MT=['preferência registrada','regra aprendida','contexto da sessão','decisão lembrada','correção do usuário','padrão recorrente','restrição conhecida','último estado'];
+const T=[
+ ['Rota Certa','#e3a857',42,['Reotimização de rotas','Janelas de entrega','Paradas duplicadas','Cálculo de ETA','Cerca virtual','Fila de motoristas','Custo por km','Depósito central'],'Quando uma parada muda de janela, a rota inteira só é reotimizada se o atraso passar de 12 minutos.'],
+ ['Arquitetura','#6fa0d0',34,['Fila de eventos','Esquema do banco','Cache de rotas','Contrato da API','Geocodificação','Migrações','Observabilidade','Limites de serviço'],'Eventos de entrega passam pela fila antes de tocar o banco; leitura nunca bloqueia escrita.'],
+ ['Preferências','#a9c47a',18,['Estilo de commit','Testes de tabela','Nomes em português','Comentários no código','Formato das respostas','Ferramentas de terminal','Revisão de código','Tamanho das funções'],'Commits curtos, no imperativo, em português. Teste de tabela antes de qualquer mock.'],
+ ['Estudos de Go','#5fc0b5',26,['Goroutines','Canais','Contexto e cancelamento','Interfaces pequenas','Tratamento de erros','Generics','Pacote sync','Testes com testing.T'],'Todo goroutine precisa de dono e de um jeito de parar. Contexto sempre como primeiro argumento.'],
+ ['Design','#e07f68',22,['Sistema de cores','Tabelas densas','Estados vazios','Mapa da entrega','Tipografia','Atalhos de teclado','Modo escuro','Painel lateral'],'Densidade primeiro: linhas de 28 px, números à direita, cor só para indicar estado.'],
+ ['Reuniões','#9d8fd0',20,['Planejamento semanal','Retro do trimestre','Conversa com o cliente','Alinhamento com ops','Demo de sexta','1:1 com a equipe','Kickoff do piloto','Revisão de incidente'],'Ficou combinado validar o piloto com três motoristas antes de abrir para a frota inteira.'],
+ ['Ideias','#d68fb5',18,['Notificação de atraso','Rota por voz','Painel do motorista','Previsão de demanda','Modo offline','Importar planilhas','Resumo diário','Etiquetas por cor'],'E se o motorista pudesse ditar a ocorrência em vez de digitar? Testar no piloto de Campinas.']
+].map(([n,c,k,h,ex])=>({n,c,k,h,ex}));
+// ---- dados (semente fixa) ----
+const GAP=.1,I=[],L=[],seen=new Set();let ang=-Math.PI/2+GAP/2;
+T.forEach((t,ti)=>{
+  t.w=(TAU-7*GAP)*t.k/180;t.mid=ang+t.w/2;t.it=[];const used=new Set();
+  for(let i=0;i<t.k;i++){
+    const mem=rnd()<.38;let h,g;do{h=pick(t.h);g=pick(mem?MT:NT)}while(used.has(h+g));used.add(h+g);
+    const an=ang+(i+.5)/t.k*t.w,reads=Math.floor(rnd()**2.2*36)+(mem?2:0);
+    const it={id:I.length,th:ti,mem,title:`${h} — ${g}`,reads,ago:1+Math.floor(rnd()*70),an,d:I.length/180*.9,a:0,tg:1,rv:0,rx:Math.cos(an),ry:Math.sin(an),sp:Array(30).fill(0),ad:[]};
+    for(let k=0;k<reads;k++)it.sp[29-Math.floor(rnd()**1.7*30)]++;
+    I.push(it);t.it.push(it);
+  }
+  t.hub=[Math.cos(t.mid)*.28,Math.sin(t.mid)*.28];t.g=[];
+  for(let s=0;s<t.k;s+=6){
+    const mb=t.it.slice(s,s+6),ga=mb.reduce((q,x)=>q+x.an,0)/mb.length,r=.56+rnd()*.08,g={m:mb,x:Math.cos(ga)*r,y:Math.sin(ga)*r};t.g.push(g);
+    mb.forEach(x=>{const la=ga+(x.an-ga)*1.7,lr=.8+rnd()*.17;x.tx=Math.cos(la)*lr;x.ty=Math.sin(la)*lr});
+  }
+  ang+=t.w+GAP;
+});
+const add=(p,q,x)=>{if(p===q)return;const k=Math.min(p.id,q.id)+'-'+Math.max(p.id,q.id);if(seen.has(k))return;seen.add(k);L.push({a:p,b:q,x,k:.86+rnd()*.09});p.ad.push(q);q.ad.push(p)};
+I.forEach(p=>{if(rnd()<.72)add(p,pick(T[p.th].it),0)});
+const PR=[[0,1],[0,5],[2,3],[2,0],[4,6],[5,6],[1,3],[4,1],[6,0],[5,1]],hub=t=>{const u=pick(T[t].it),v=pick(T[t].it);return u.reads>v.reads?u:v};
+for(let n=0;n<95;n++){const[p,q]=rnd()<.8?pick(PR):[Math.floor(rnd()*7),Math.floor(rnd()*7)];if(p!==q)add(hub(p),hub(q),1)}
+// ---- interface ----
+const nN=I.filter(x=>!x.mem).length,S={shape:'feixes',flt:'tudo'},cv=$('#cv'),ctx=cv.getContext('2d'),tip=$('#tip'),pn=$('#pn');
+const NAV=[['Notas','M4 2.5h5.5l3 3v8H4z M9.5 2.5v3h3',nN],['Memórias','M2.5 6 8 3l5.5 3L8 9z M2.5 9.5 8 12.5l5.5-3',180-nN],['Grafo','M5.5 5.5 10.5 4M5.8 6.6l3 4.4M4 4.2a1.6 1.6 0 1 0 .01 0M12 3a1.6 1.6 0 1 0 .01 0M9.5 12a1.6 1.6 0 1 0 .01 0'],['Atividade','M2 8h3l2-4 2 8 2-4h3'],['Métricas','M3.5 13V8M8 13V3.5M12.5 13V6'],['Perfil','M8 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM3 13.5c.5-2.5 2.5-3.5 5-3.5s4.5 1 5 3.5'],['Ajustes','M3 5h10M3 11h10M6 3.5v3M10 9.5v3']];
+$('#nav').innerHTML=NAV.map(([n,d,c])=>`<button class="nav" ${n=='Grafo'?'aria-current="page"':''}><svg viewBox="0 0 16 16"><path d="${d}"/></svg>${n}${c?`<i>${c}</i>`:''}</button>`).join('');
+$('#ctl').innerHTML=[['shape','Forma do grafo',[['feixes','Feixes'],['raizes','Raízes']]],['flt','Filtro',[['tudo','Tudo',180],['notas','Notas',nN],['mem','Memórias',180-nN]]]]
+  .map(([g,lb,o])=>`<div class="seg" role="group" aria-label="${lb}">${o.map(([k,l,c])=>`<button data-g="${g}" data-k="${k}">${l}${c?`<i>${c}</i>`:''}</button>`).join('')}</div>`).join('');
+const ok=x=>S.flt=='tudo'||(S.flt=='mem')===x.mem,slug=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+const rl=x=>x.reads?`lida ${x.reads} ${x.reads==1?'vez':'vezes'} em 30 dias`:'não lida em 30 dias';
+let mt=0,m=0,pt=0,sh=0,W=0,H=0,R=300,cx=0,cy=0,hov=null,sel=null,kb=false,rd=null,nx=0,fx=[];const t0=performance.now()/1e3;
+function sync(){
+  document.querySelectorAll('[data-g]').forEach(b=>b.setAttribute('aria-pressed',S[b.dataset.g]===b.dataset.k));
+  mt=S.shape=='raizes'?1:0;I.forEach(x=>x.tg=ok(x)?1:.1);
+  $('#cnt').innerHTML=`<b>${I.filter(ok).length}</b> itens<s>·</s><b>${L.filter(l=>ok(l.a)&&ok(l.b)).length}</b> ligações`;
+}
+$('#ctl').onclick=e=>{const b=e.target.closest('[data-g]');if(b){S[b.dataset.g]=b.dataset.k;sync()}};
+function open(x){
+  sel=x;pt=1;const t=T[x.th],mx=Math.max(...x.sp,1),cn=[...x.ad].sort((p,q)=>q.reads-p.reads);pn.inert=false;pn.classList.add('on');
+  pn.innerHTML=`<button class="x" aria-label="Fechar painel">✕</button><span class="tg"><i class="dt" style="background:${t.c}"></i>${t.n} · ${x.mem?'Memória':'Nota'}</span><h2 tabindex="-1">${x.title}</h2>
+  <dl><dt>Uso</dt><dd>${rl(x)}</dd><dt>Última leitura</dt><dd>${x.ago?`há ${x.ago} h`:'agora há pouco'}</dd><dt>Arquivo</dt><dd><code>${x.mem?'.omnimind/memorias':'cofre/'+slug(t.n)}/${slug(x.title)}.md</code></dd></dl>
+  <h3>${x.mem?'Memória guardada pela IA':'Trecho da nota'}</h3><blockquote style="border-color:${t.c}">${t.ex}</blockquote>
+  <h3>Leituras por dia · 30 dias</h3><div class="sp">${x.sp.map(v=>`<b style="height:${2+v/mx*28}px;background:${v?t.c:'#2a2822'}"></b>`).join('')}</div>
+  <h3>Conexões · ${cn.length}</h3>${cn.slice(0,7).map(c=>`<button class="cn" data-i="${c.id}"><i class="dt" style="background:${T[c.th].c}"></i><span>${c.title}</span></button>`).join('')}${cn.length>7?`<p class="mo">+ ${cn.length-7} outras</p>`:''}`;
+  pn.querySelector('h2').focus();
+}
+function close(){sel=null;pt=0;pn.classList.remove('on');pn.inert=true;cv.focus()}
+pn.inert=true;
+pn.onclick=e=>{if(e.target.closest('.x'))close();const b=e.target.closest('[data-i]');if(b)open(I[+b.dataset.i])};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&sel)close()});
+function tipAt(it,x,y){
+  if(!it){tip.style.opacity=0;tip._i=null;return}
+  if(tip._i!==it){tip._i=it;tip.innerHTML=`<span class="tg"><i class="dt" style="background:${T[it.th].c}"></i>${T[it.th].n}</span><strong>${it.title}</strong><div class="mo">${it.mem?'◆ Memória':'● Nota'}</div><div class="mo" style="color:var(--mu);font-size:11.5px">${rl(it)}</div>`}
+  tip.style.opacity=1;tip.style.transform=`translate(${Math.min(x+16,W-tip.offsetWidth-10)}px,${Math.min(y+16,H-tip.offsetHeight-10)}px)`;
+}
+cv.onmousemove=e=>{
+  kb=false;const b=cv.getBoundingClientRect(),x=e.clientX-b.left,y=e.clientY-b.top;let best=null,bd=1e9;
+  for(const it of I){if(it.a<.5||it.rv<.9)continue;const d=Math.hypot(it.px-x,it.py-y);if(d<bd&&d<it.r+7){bd=d;best=it}}
+  hov=best;cv.style.cursor=best?'pointer':'';tipAt(best,x,y);
+};
+cv.onmouseleave=()=>{hov=null;tipAt(null)};
+cv.onclick=()=>hov?open(hov):sel&&close();
+cv.onkeydown=e=>{
+  const v=I.filter(ok);
+  if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();kb=true;hov=v[(v.indexOf(hov)+(e.key==='ArrowRight'?1:-1)+v.length)%v.length];tipAt(hov,hov.px+12,hov.py+12)}
+  else if((e.key==='Enter'||e.key===' ')&&hov){e.preventDefault();open(hov)}
+};
+cv.onblur=()=>{if(kb){hov=null;tipAt(null)}};
+new ResizeObserver(()=>{const b=cv.parentNode.getBoundingClientRect(),r=devicePixelRatio||1;W=b.width;H=b.height;cv.width=W*r;cv.height=H*r;ctx.setTransform(r,0,0,r,0,0);R=Math.min(H/2-80,W/2-210)}).observe(cv.parentNode);
+// ---- desenho ----
+const bp=(c,s)=>{const u=1-s,a=u*u*u,b=3*u*u*s,d=3*u*s*s,e=s*s*s;return[a*c[0]+b*c[2]+d*c[4]+e*c[6],a*c[1]+b*c[3]+d*c[5]+e*c[7]]};
+const shape=(x,y,r,mem)=>{ctx.beginPath();if(mem){r*=1.35;ctx.moveTo(x,y-r);ctx.lineTo(x+r,y);ctx.lineTo(x,y+r);ctx.lineTo(x-r,y);ctx.closePath()}else ctx.arc(x,y,r,0,TAU)};
+function br(x0,y0,x1,y1,w,col,al,s){ctx.globalAlpha=al;ctx.strokeStyle=col;ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(x0,y0);ctx.quadraticCurveTo((x0+x1)/2-(y1-y0)*s,(y0+y1)/2+(x1-x0)*s,x1,y1);ctx.stroke()}
+function frame(ts){
+  requestAnimationFrame(frame);if(!W)return;
+  const now=ts/1e3,dt=Math.min(.05,now-(frame.p||now));frame.p=now;
+  m=RM?mt:lerp(m,mt,Math.min(1,dt*5));sh=RM?pt:lerp(sh,pt,Math.min(1,dt*6));
+  const el=RM?9:now-t0,la=ez(cl((el-1)/.8)),gv=ez(cl(el/1.4));
+  cx=W/2-sh*160;cy=H/2+6;
+  I.forEach(x=>{x.a=RM?x.tg:x.a+(x.tg-x.a)*Math.min(1,dt*9);x.rv=ez(cl((el-x.d)/.9));x.px=cx+lerp(x.rx,x.tx,m)*x.rv*R;x.py=cy+lerp(x.ry,x.ty,m)*x.rv*R;x.r=2.6+Math.sqrt(x.reads)*.62});
+  T.forEach(t=>{
+    t.rs=1+t.it.reduce((q,x)=>q+x.reads,0);
+    const p=(r)=>[cx+Math.cos(t.mid)*R*r,cy+Math.sin(t.mid)*R*r];t.in=p(lerp(.2,.28,m));t.md=p(lerp(.6,.48,m));
+  });
+  L.forEach(l=>{
+    const{a,b,k,x}=l,A=x?T[a.th].in:T[a.th].md,B=x?T[b.th].in:T[b.th].md,kk=x?k:.8;
+    l.c=[a.px,a.py,a.px+(A[0]-a.px)*kk,a.py+(A[1]-a.py)*kk,b.px+(B[0]-b.px)*kk,b.py+(B[1]-b.py)*kk,b.px,b.py];
+  });
+  if(rd&&now-rd.t0>3.1)rd=null;
+  if(!rd&&el>2.2&&now>nx){const v=L.filter(l=>l.a.tg==1&&l.b.tg==1);if(v.length){const l=pick(v);rd={l,to:rnd()<.5?l.b:l.a,t0:now,done:0}}nx=now+3.4+rnd()*2}
+  if(rd&&!rd.done&&(RM||now-rd.t0>=1.3)){
+    const x=rd.to;rd.done=1;x.reads++;x.ago=0;fx.push({x,t:now});
+    $('#live').innerHTML=`<i class="dt d" style="background:${T[x.th].c}"></i><span>IA leu <b>${x.title}</b> · ${T[x.th].n}</span>`;
+  }
+  const q=rd?now-rd.t0:0,hl=rd?(RM?(q<2.4?.8:0):.85*cl(1-(q-1.3)/1.5)):0,fo=hov||sel,nb=fo?new Set([fo,...fo.ad]):null;
+  ctx.clearRect(0,0,W,H);
+  ctx.lineWidth=1;ctx.strokeStyle='#e9e5da';ctx.globalAlpha=.07*(1-m)*gv;ctx.beginPath();ctx.arc(cx,cy,R*gv,0,TAU);ctx.stroke();
+  if(m>.01){
+    const mx=Math.max(...T.map(t=>t.rs));
+    T.forEach((t,ti)=>{
+      const s=ti%2?.07:-.07,h=[cx+t.hub[0]*R*gv,cy+t.hub[1]*R*gv];
+      br(cx,cy,h[0],h[1],1.5+10*Math.sqrt(t.rs/mx),t.c,.7*m,s);
+      t.g.forEach(g=>{
+        const gp=[cx+g.x*R*gv,cy+g.y*R*gv],gr=g.m.reduce((u,x)=>u+x.reads,0);
+        br(h[0],h[1],gp[0],gp[1],.8+5*Math.sqrt(Math.min(1,gr/mx*5)),t.c,.7*m,-s);
+        g.m.forEach(x=>br(gp[0],gp[1],x.px,x.py,.5+1.6*Math.sqrt(x.reads/36),t.c,.55*m*x.a*x.rv,s*1.4));
+      });
+    });
+    ctx.globalAlpha=m*gv;ctx.fillStyle='#e9e5da';ctx.beginPath();ctx.arc(cx,cy,5,0,TAU);ctx.fill();
+  }
+  L.forEach(l=>{
+    const{a,b,c}=l,on=fo&&(a===fo||b===fo),hit=rd&&rd.l===l;
+    let al=(l.x?.2:.1)*(1-m*.85);if(fo)al=on?.9:al*.25;if(hit)al=Math.max(al,hl);
+    al*=Math.min(a.a,b.a)*la;if(al<.008)return;
+    ctx.globalAlpha=al;ctx.lineWidth=on||hit?1.7:l.x?.9:.7;
+    let st=T[a.th].c;if(l.x){st=ctx.createLinearGradient(c[0],c[1],c[6],c[7]);st.addColorStop(0,T[a.th].c);st.addColorStop(1,T[b.th].c)}
+    ctx.strokeStyle=st;ctx.beginPath();ctx.moveTo(c[0],c[1]);ctx.bezierCurveTo(c[2],c[3],c[4],c[5],c[6],c[7]);ctx.stroke();
+  });
+  I.forEach(x=>{ctx.globalAlpha=x.a*x.rv*(nb&&!nb.has(x)?.28:1);ctx.fillStyle=T[x.th].c;shape(x.px,x.py,x.r,x.mem);ctx.fill()});
+  if(rd&&!RM){
+    const f=rd.to===rd.l.b?1:-1,p=cl(q/1.3),s0=f>0?ez(p):1-ez(p);
+    if(p<1)for(let j=11;j>=0;j--){const[x,y]=bp(rd.l.c,cl(s0-f*j*.022));ctx.globalAlpha=(1-j/12)*.9;ctx.fillStyle='#fff4dc';ctx.beginPath();ctx.arc(x,y,3.4*(1-j/16)+.4,0,TAU);ctx.fill()}
+  }
+  fx=fx.filter(f=>now-f.t<1.5);
+  fx.forEach(f=>{const u=(now-f.t)/1.5;ctx.globalAlpha=.8*(1-u);ctx.strokeStyle='#fff4dc';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(f.x.px,f.x.py,f.x.r+(RM?6:4+u*22),0,TAU);ctx.stroke()});
+  [[sel,5,1.5,.9],[hov,kb?6:4,kb?2.2:1.3,1]].forEach(([x,o,w,al])=>{if(!x)return;ctx.globalAlpha=al;ctx.strokeStyle='#e9e5da';ctx.lineWidth=w;shape(x.px,x.py,x.r+o,x.mem);ctx.stroke()});
+  T.forEach(t=>{
+    const c=Math.cos(t.mid),s=Math.sin(t.mid),n=t.it.filter(ok).length,x=cx+c*R*1.14,y=cy+s*R*1.14+(s<-.5?-14:s>.5?8:-3);
+    ctx.globalAlpha=gv*(fo&&fo.th!==T.indexOf(t)?.5:1);ctx.textAlign=c>.3?'left':c<-.3?'right':'center';
+    ctx.fillStyle=t.c;ctx.font=`500 12.5px ${UI}`;ctx.fillText(t.n,x,y);
+    ctx.fillStyle='#8e897c';ctx.font=`400 10.5px ${MO}`;ctx.fillText(`${n} ${n==1?'item':'itens'}`,x,y+14);
+  });
+  ctx.globalAlpha=1;
+}
+sync();requestAnimationFrame(frame);
+$('#live').innerHTML='<i class="dt d" style="background:#8e897c"></i><span>IA em espera · a próxima leitura chega em instantes</span>';
+</script>
+</body>
+</html>

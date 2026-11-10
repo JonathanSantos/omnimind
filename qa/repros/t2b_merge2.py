@@ -1,0 +1,31 @@
+import sys; sys.path.insert(0,'.')
+from vz import *
+print('== same title, unrelated bodies')
+b=fresh('t2b'); m=Mcp(b)
+a=m.write(type='episode',title='Reunião semanal',body='Discutimos a migração do banco para Postgres, com responsável Ana.',origin_kind='session')
+c=m.write(type='episode',title='Reunião semanal',body='Falamos do orçamento de marketing de 2027 e cortamos a verba de eventos.',origin_kind='session')
+print(c.get('outcome'),c.get('rule'),c.get('into'),'hint',c.get('hint'),'warnings',c.get('warnings'))
+print([p.name for p in (b/'memories').rglob('*.md')]); s=m.search('orçamento marketing verba eventos'); print(s['status'],len(s['results']))
+print('journal mentions lost text:', 'orçamento' in subprocess.run(['grep','-rh','Falamos do',str(b/'.omnimind/journal')],capture_output=True,text=True).stdout)
+print(cli('log',brain=b).stdout[-300:]); m.close()
+print('== person remember, near-duplicate')
+b=fresh('t2b2')
+for t in ['O deploy da rota A em produção acontece às 10h da manhã de terça','O deploy da rota B em produção acontece às 10h da manhã de terça','Reunião com Ana na terça às 14h na sala azul do segundo andar','Reunião com Bia na terça às 14h na sala azul do segundo andar']:
+    r=cli('remember',t,brain=b); print(r.returncode,r.stdout.strip().replace('\n',' | '),r.stderr[:100])
+for p in (b/'memories').rglob('*.md'): print(p.relative_to(b)); 
+print(cli('search','rota B',brain=b).stdout[:300])
+print('== remember twice different with type')
+print('== agent into person: agent near-dup text folded into person memory')
+print('== light sleep merge: pairs stored by hand / different titles')
+b=fresh('t2b3'); m=Mcp(b)
+mem=b/'memories/decision'; mem.mkdir(parents=True,exist_ok=True)
+H="---\nid: {id}\ntype: decision\ntitle: {t}\nsummary: {s}\nauthority: agent\norigin:\n  kind: session\ncreated: 2026-10-01T00:00:00Z\nupdated: 2026-10-01T00:00:00Z\n---\n{b}\n"
+tx=lambda r:f"O deploy da rota {r} em produção acontece às 10h da manhã de terça-feira conforme combinado com o time de plataforma e registrado na reunião de outubro passado"
+(mem/'a.md').write_text(H.format(id='01JB7Y0000000000000000AAAA',t='Deploy rota A',s='resumo A',b=tx('A')))
+(mem/'b.md').write_text(H.format(id='01JB7Y0000000000000000BBBB',t='Deploy rota B',s='resumo B',b=tx('B')))
+(mem/'c.md').write_text(H.format(id='01JB7Y0000000000000000CCCC',t='Prazo rota C',s='resumo C',b=tx('C').replace('10h','11h')))
+m.close()
+print(cli('sleep',brain=b).stdout); print(cli('log',brain=b).stdout[-700:])
+for p in sorted((b/'memories').rglob('*.md')): print(p.name, 'archived' in p.read_text(), [l for l in p.read_text().splitlines() if l.startswith(('archived','supersedes'))])
+m=Mcp(b); print([ (x['title']) for x in m.search('deploy rota produção')['results']], m.search('deploy rota')['coverage']['hidden']); ag=m.call('memory_agenda',limit=20); print([(i['kind'],i['title'],i.get('ids')) for i in ag['items']]); m.close()
+print(cli('doctor',brain=b).stdout[:400])

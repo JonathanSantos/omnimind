@@ -1,0 +1,50 @@
+[package]
+name = "app"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "proof-editor"
+path = "src/bin/proof_editor.rs"
+
+[[bin]]
+name = "proof-graph"
+path = "src/bin/proof_graph.rs"
+
+[[bin]]
+name = "shots"
+path = "src/bin/shots.rs"
+
+[[bin]]
+name = "omnimind-app"
+path = "src/main.rs"
+
+[[bin]]
+name = "make-icon"
+path = "src/bin/make_icon.rs"
+
+[[bin]]
+name = "make-brain"
+path = "src/bin/make_brain.rs"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+ed = { path = "../ed" }
+gfx = { path = "../gfx" }
+graph = { path = "../graph" }
+winit.workspace = true
+bytemuck.workspace = true
+rustc-hash.workspace = true
+omnimind-core = { path = "../core" }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.5"
+
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+arboard = { version = "3", default-features = false }
+rfd = "0.15"
+
+[target.'cfg(all(unix, not(target_os = "macos")))'.dependencies]
+libc = "0.2"

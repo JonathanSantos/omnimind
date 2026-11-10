@@ -1,0 +1,8 @@
+[package]
+name = "ed"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+ropey = "1.6"
+unicode-segmentation = "1"

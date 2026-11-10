@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guia do Omnimind</title>
+<style>
+@font-face { font-family: "Familjen Grotesk"; src: url("fonts/FamiljenGrotesk.ttf"); font-weight: 400 700; font-display: swap; }
+@font-face { font-family: "Sometype Mono"; src: url("fonts/SometypeMono.ttf"); font-weight: 400 700; font-display: swap; }
+:root {
+  color-scheme: light dark;
+  --bg: #FFFFFF; --side: #F7F7F6; --panel: #F4F4F2; --ink: #18181A; --sub: #55555C; --mute: #6E6E76;
+  --line: #E7E7E4; --sel: #EBEBE9; --acc: #1F7A5C; --on-acc: #FFFFFF; --warn: #B4401F;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #141416; --side: #19191C; --panel: #1D1D20; --ink: #EDEDEE; --sub: #B0B0B7; --mute: #94949C;
+    --line: #2D2D32; --sel: #2A2A2F; --acc: #4CC29A; --on-acc: #0F2B21; --warn: #F2836C; }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.6 "Familjen Grotesk", system-ui, sans-serif; }
+a { color: var(--acc); text-underline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; border-radius: 4px; }
+code, kbd, pre { font-family: "Sometype Mono", ui-monospace, monospace; }
+code { font-size: .88em; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; overflow-wrap: anywhere; }
+kbd { font-size: .85em; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; background: var(--panel); white-space: nowrap; }
+
+.side { position: fixed; inset: 0 auto 0 0; width: 232px; background: var(--side); border-right: 1px solid var(--line); padding: 24px 12px; overflow-y: auto; }
+.brand { display: flex; align-items: center; gap: 10px; padding: 0 8px 20px; font-weight: 600; }
+.brand img { width: 26px; height: 26px; border-radius: 6px; }
+.side a { display: block; padding: 6px 10px; margin-bottom: 2px; border-radius: 6px; color: var(--sub); text-decoration: none; font-size: 14px; line-height: 1.35; }
+.side a:hover { background: var(--sel); color: var(--ink); }
+.side a.on { background: var(--sel); color: var(--ink); font-weight: 600; }
+.side .group { margin: 16px 10px 6px; font-size: 12px; color: var(--mute); }
+
+main { margin-left: 232px; padding: 56px 40px 96px; }
+.wrap { max-width: 880px; margin: 0 auto; }
+.top { display: grid; grid-template-columns: 1fr 200px; gap: 40px; align-items: end; padding-bottom: 32px; border-bottom: 1px solid var(--line); }
+h1 { font-size: 44px; line-height: 1.1; margin: 0 0 16px; font-weight: 600; letter-spacing: -.01em; }
+.lead { font-size: 19px; line-height: 1.5; color: var(--sub); margin: 0; max-width: 34em; }
+.words { margin: 0; display: grid; gap: 12px; font-size: 14px; }
+.words div { display: grid; gap: 0; }
+.words dt { font-weight: 600; }
+.words dd { margin: 0; color: var(--sub); }
+section { padding-top: 56px; }
+h2 { font-size: 28px; line-height: 1.2; margin: 0 0 12px; font-weight: 600; }
+h3 { font-size: 18px; margin: 32px 0 8px; font-weight: 600; }
+p { margin: 0 0 14px; max-width: 42em; }
+.sub { color: var(--sub); }
+ol.steps { list-style: none; counter-reset: s; margin: 20px 0; padding: 0; max-width: 42em; }
+ol.steps > li { counter-increment: s; position: relative; padding: 0 0 16px 42px; }
+ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--acc); color: var(--on-acc); font: 600 13px/28px "Sometype Mono", monospace; text-align: center; }
+
+figure { margin: 20px 0 28px; }
+.shot { position: relative; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; line-height: 0; background: var(--panel); }
+.shot img { display: block; width: 100%; height: auto; }
+.pin { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; background: var(--acc); color: var(--on-acc); border: 2px solid #fff; font: 600 13px/22px "Sometype Mono", monospace; text-align: center; }
+figcaption { font-size: 14px; color: var(--sub); margin-top: 8px; line-height: 1.5; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.pair figure { margin: 0; }
+
+.cmd { position: relative; background: #141416; color: #EDEDEE; border: 1px solid var(--line); border-radius: 8px; margin: 14px 0 20px; }
+.cmd pre { margin: 0; padding: 14px 84px 14px 16px; white-space: pre-wrap; word-break: break-word; font-size: 13.5px; line-height: 1.55; }
+.cmd button { position: absolute; top: 8px; right: 8px; font: 500 12px "Familjen Grotesk", sans-serif; color: #EDEDEE; background: #232327; border: 1px solid #3A3A40; border-radius: 6px; padding: 5px 10px; cursor: pointer; min-height: 28px; }
+.cmd button:hover { background: #2A2A2F; }
+
+.flow { display: grid; grid-template-columns: 1fr 28px 1fr 28px 1fr; align-items: center; gap: 4px; margin: 24px 0; }
+.node { border: 1px solid var(--line); border-radius: 8px; padding: 14px; min-height: 104px; background: var(--side); }
+.node b { display: block; font-weight: 600; margin-bottom: 2px; }
+.node span { font-size: 14px; color: var(--sub); line-height: 1.4; display: block; }
+.arrow { text-align: center; color: var(--mute); font-size: 18px; }
+
+table { width: 100%; border-collapse: collapse; margin: 16px 0 24px; font-size: 15px; }
+th { text-align: left; font-weight: 600; font-size: 13px; color: var(--mute); padding: 8px 12px 8px 0; border-bottom: 1px solid var(--line); }
+td { padding: 11px 12px 11px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.note { border-left: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; margin: 16px 0 24px; max-width: 42em; }
+.note b { display: block; font-weight: 600; margin-bottom: 2px; }
+.note.warn b { color: var(--warn); }
+.note p:last-child { margin: 0; }
+.keys { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 8px 24px; margin: 12px 0 24px; font-size: 15px; }
+.tree { font: 13px/1.7 "Sometype Mono", monospace; margin: 0; white-space: pre; overflow-x: auto; background: var(--side); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+
+@media (max-width: 900px) {
+  .side { position: static; width: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 16px; display: flex; flex-wrap: wrap; gap: 2px; }
+  .brand { width: 100%; padding-bottom: 8px; }
+  .side .group { display: none; }
+  main { margin: 0; padding: 32px 16px 64px; }
+  .top, .pair { grid-template-columns: 1fr; }
+  h1 { font-size: 34px; }
+  .flow { grid-template-columns: 1fr; }
+  .arrow { transform: rotate(90deg); }
+  .pin { width: 20px; height: 20px; margin: -10px 0 0 -10px; font-size: 11px; line-height: 16px; }
+}
+.print-only { display: none; }
+@page { size: A4; margin: 16mm 15mm 16mm; }
+@media print {
+  :root { --bg: #FFFFFF; --side: #F7F7F6; --panel: #F4F4F2; --ink: #18181A; --sub: #55555C; --mute: #6E6E76;
+    --line: #E7E7E4; --sel: #EBEBE9; --acc: #1F7A5C; --on-acc: #FFFFFF; --warn: #B4401F; color-scheme: light; }
+  html, body { background: #fff; font-size: 12.5px; line-height: 1.5; }
+  .side, .cmd button, script { display: none !important; }
+  main { margin: 0; padding: 0; }
+  .wrap { max-width: none; }
+  .print-only { display: block; }
+  .cover { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 14px; margin-bottom: 18mm; }
+  .cover img { width: 28px; height: 28px; border-radius: 6px; }
+  .cover span { margin-left: auto; color: var(--mute); font-weight: 400; font-size: 11px; }
+  h1 { font-size: 34px; }
+  .lead { font-size: 15px; }
+  .top { grid-template-columns: 1fr 170px; gap: 24px; }
+  section { padding-top: 0; margin-top: 10mm; }
+  #cofre, #claude, #copilot, #dia, #ligar, #problemas { break-before: page; margin-top: 0; }
+  h2 { font-size: 22px; break-after: avoid; }
+  h3 { font-size: 15px; margin-top: 16px; break-after: avoid; }
+  p, table, ol.steps > li { max-width: none; }
+  figure, .note, .cmd, .tree, tr, ol.steps > li { break-inside: avoid; }
+  figure { margin: 12px 0 16px; }
+  .pair { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .flow { grid-template-columns: 1fr 24px 1fr 24px 1fr; margin: 16px 0; }
+  .arrow { transform: none; }
+  .node { min-height: 0; padding: 10px; }
+  .cmd { -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 10px 0 14px; }
+  .cmd pre { padding: 10px 12px; font-size: 11px; }
+  .tree { font-size: 11px; white-space: pre-wrap; }
+  .pin, ol.steps > li::before, .node, .note, .tree, code { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pin { width: 22px; height: 22px; margin: -11px 0 0 -11px; font-size: 11px; line-height: 18px; }
+  a { color: inherit; text-decoration: none; }
+}
+</style>
+</head>
+<body>
+<nav class="side" aria-label="Partes do guia">
+  <div class="brand"><img src="images/icon.png" alt=""> Omnimind</div>
+  <div class="group">Começar</div>
+  <a href="#instalar">Instalar</a>
+  <a href="#cofre">Criar o cofre</a>
+  <div class="group">Conectar</div>
+  <a href="#claude">Claude Code</a>
+  <a href="#copilot">GitHub Copilot</a>
+  <a href="#conferir">Conferir se funcionou</a>
+  <div class="group">Usar</div>
+  <a href="#dia">No dia a dia</a>
+  <a href="#ligar">Ligar e desligar</a>
+  <a href="#problemas">Quando algo falha</a>
+  <a href="#limites">O que ainda falta testar</a>
+</nav>
+
+<main><div class="wrap">
+<div class="cover print-only"><img src="images/icon.png" alt=""> Omnimind <span>Como usar · versão 0.1</span></div>
+<header class="top">
+  <div>
+    <h1>Sua IA para de esquecer.</h1>
+    <p class="lead">O Omnimind guarda o que você decide e corrige. Na sessão seguinte, a IA já sabe. Tudo fica em arquivos seus, no seu Mac.</p>
+  </div>
+  <dl class="words">
+    <div><dt>Nota</dt><dd>O que você escreve.</dd></div>
+    <div><dt>Memória</dt><dd>O que a IA aprende.</dd></div>
+    <div><dt>Cofre</dt><dd>A pasta que guarda as duas.</dd></div>
+  </dl>
+</header>
+
+<div class="flow" role="img" aria-label="O projeto conversa com o Omnimind, que lê e grava no cofre">
+  <div class="node"><b>Seu projeto</b><span>Claude Code ou Copilot, como você já usa.</span></div>
+  <div class="arrow" aria-hidden="true">→</div>
+  <div class="node"><b>Omnimind</b><span>Entrega o que importa e grava o que a IA aprendeu.</span></div>
+  <div class="arrow" aria-hidden="true">→</div>
+  <div class="node"><b>Cofre</b><span>Markdown numa pasta sua. Sem nuvem e sem conta.</span></div>
+</div>
+
+<section id="instalar">
+  <h2>1. Instalar</h2>
+  <p>Arraste <code>Omnimind.app</code> para <strong>Aplicativos</strong> antes de conectar qualquer projeto.</p>
+  <div class="note warn"><b>Faça isso primeiro</b><p>A conexão guarda o caminho do app. Se ele mudar de lugar depois, a IA para de achar o Omnimind e cada projeto precisa ser conectado de novo.</p></div>
+  <p class="sub">Requer macOS 13 ou mais novo, em Mac com Apple Silicon. Na primeira abertura, se o macOS bloquear o app, clique nele com o botão direito e escolha Abrir.</p>
+</section>
+
+<section id="cofre">
+  <h2>2. Criar o cofre</h2>
+  <p>Abra o Omnimind. Essa tela só aparece enquanto não existe um cofre.</p>
+  <figure>
+    <div class="shot">
+      <img src="images/welcome.png" alt="Tela de boas-vindas do Omnimind, com Começar, Abrir uma pasta e Ver um exemplo">
+      <span class="pin" style="left:10.6%;top:76.8%">1</span>
+      <span class="pin" style="left:20%;top:76.8%">2</span>
+      <span class="pin" style="left:28.5%;top:76.8%">3</span>
+    </div>
+    <figcaption><b>1</b> Começar cria o cofre Pessoal, sem perguntar nada. <b>2</b> Abrir uma pasta usa um cofre que já existe. <b>3</b> Ver um exemplo abre um cofre fictício, para explorar sem compromisso.</figcaption>
+  </figure>
+  <p>Depois disso, o app abre direto no Grafo. Para trazer notas que você já tem em Markdown, rode no Terminal:</p>
+  <div class="cmd"><pre>/Applications/Omnimind.app/Contents/MacOS/omnimind import-markdown PASTA_DAS_NOTAS --brain ~/Omnimind</pre><button type="button">Copiar</button></div>
+</section>
+
+<section id="claude">
+  <h2>3. Conectar o Claude Code</h2>
+  <p>A conexão vale para um projeto de cada vez. Comece por um projeto de estudo.</p>
+  <figure>
+    <div class="shot">
+      <img src="images/settings.png" alt="Tela de Ajustes com as conexões do Claude Code e do GitHub Copilot">
+      <span class="pin" style="left:64.5%;top:17.3%">1</span>
+      <span class="pin" style="left:75.3%;top:17.3%">2</span>
+    </div>
+    <figcaption>Abra Ajustes com <kbd>⌘,</kbd>. <b>1</b> Conectar projeto pede a pasta e resolve tudo. <b>2</b> Copiar comando faz o mesmo pelo Terminal.</figcaption>
+  </figure>
+  <ol class="steps">
+    <li>Em <strong>Ajustes</strong>, na linha do Claude Code, clique em <strong>Conectar projeto…</strong> e escolha a pasta.</li>
+    <li>Espere a mensagem <em>Ligado neste projeto. Vale a partir da próxima sessão.</em></li>
+    <li>Abra uma sessão nova do Claude Code nessa pasta. Se ele pedir para aprovar o servidor <code>omnimind</code>, aprove.</li>
+    <li>Rode <code>/mcp</code> para ver o <code>omnimind</code> na lista.</li>
+  </ol>
+  <h3>Pelo Terminal</h3>
+  <p>Na pasta do projeto, veja antes o que vai mudar. Com <code>--print</code>, nada é gravado:</p>
+  <div class="cmd"><pre>/Applications/Omnimind.app/Contents/MacOS/omnimind connect claude-code --brain ~/Omnimind --project . --print</pre><button type="button">Copiar</button></div>
+  <p>Depois, tire o <code>--print</code> para conectar:</p>
+  <div class="cmd"><pre>/Applications/Omnimind.app/Contents/MacOS/omnimind connect claude-code --brain ~/Omnimind --project .</pre><button type="button">Copiar</button></div>
+  <h3>O que muda no projeto</h3>
+<pre class="tree">seu-projeto/
+├── .mcp.json                    como a IA acha o Omnimind
+└── .claude/
+    ├── settings.json            avisos de início, correção e fim de sessão
+    └── skills/
+        ├── omnimind/SKILL.md    como usar a memória
+        └── sonhar/SKILL.md      o comando /sonhar</pre>
+  <p class="sub" style="margin-top:12px">Se esses arquivos já existirem, as configurações atuais continuam lá, e uma cópia de segurança fica ao lado de cada um. Esses arquivos têm caminhos do seu Mac. Se o projeto tem repositório compartilhado, deixe-os fora do commit.</p>
+</section>
+
+<section id="copilot">
+  <h2>4. Conectar o GitHub Copilot</h2>
+  <div class="note warn"><b>Ainda não testado no Copilot real</b><p>O formato segue a documentação pública. Os passos no VS Code podem variar conforme a versão. A experiência tende a ser mais simples que a do Claude Code.</p></div>
+  <ol class="steps">
+    <li>Em <strong>Ajustes</strong>, na linha do GitHub Copilot, clique em <strong>Conectar projeto…</strong> e escolha a pasta.</li>
+    <li>Abra a pasta no VS Code e abra o arquivo <code>.vscode/mcp.json</code>.</li>
+    <li>Clique em <strong>Start</strong>, acima do servidor <code>omnimind</code>. Se o VS Code pedir confirmação, aceite.</li>
+    <li>No chat do Copilot, escolha o modo <strong>Agent</strong> e confira se as ferramentas do Omnimind aparecem.</li>
+  </ol>
+  <h3>Pelo Terminal</h3>
+  <div class="cmd"><pre>/Applications/Omnimind.app/Contents/MacOS/omnimind connect copilot --brain ~/Omnimind --project .</pre><button type="button">Copiar</button></div>
+  <h3>O que muda no projeto</h3>
+<pre class="tree">seu-projeto/
+├── .vscode/mcp.json             o servidor para o VS Code
+└── .github/
+    ├── mcp.json                 o servidor para o Copilot
+    ├── hooks/omnimind.json      avisos de sessão
+    └── skills/                  omnimind e sonhar</pre>
+  <p class="sub" style="margin-top:12px">Peça à IA que consulte a memória quando ela não fizer isso sozinha. O Copilot registra sua mensagem, mas não recebe contexto novo a cada mensagem.</p>
+</section>
+
+<section id="conferir">
+  <h2>5. Conferir se funcionou</h2>
+  <p>Faça este teste na primeira sessão. Leva uns cinco minutos e confirma que tudo funciona no seu Claude Code.</p>
+  <table>
+    <thead><tr><th>Faça</th><th>Espere ver</th></tr></thead>
+    <tbody>
+      <tr><td>Diga: <em>prefiro respostas curtas, no máximo três linhas</em></td><td>A IA grava. Em <strong>Memórias</strong>, surge uma preferência sua.</td></tr>
+      <tr><td>Corrija algo: <em>não, aqui usamos pnpm</em></td><td>A correção aparece em <strong>Atividade</strong>.</td></tr>
+      <tr><td>Feche e abra uma sessão nova. Pergunte o que ela sabe sobre você.</td><td>Ela responde sem você repetir.</td></tr>
+      <tr><td>Em <strong>Atividade</strong>, clique em <strong>Desfazer sessão</strong>.</td><td>O que aquela sessão mudou volta atrás.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="dia">
+  <h2>6. No dia a dia</h2>
+  <p>Você não precisa manter o app aberto para a IA lembrar. Ele serve para ver, corrigir e desfazer.</p>
+  <div class="keys">
+    <span><kbd>⌘K</kbd> buscar em tudo</span>
+    <span><kbd>⌘1</kbd> Notas</span>
+    <span><kbd>⌘2</kbd> Memórias</span>
+    <span><kbd>⌘3</kbd> Grafo</span>
+    <span><kbd>⌘4</kbd> Atividade</span>
+    <span><kbd>⌘5</kbd> Métricas</span>
+    <span><kbd>⌘6</kbd> Perfil</span>
+    <span><kbd>⌘,</kbd> Ajustes</span>
+  </div>
+  <figure>
+    <div class="shot"><img src="images/graph-bundles.png" alt="Grafo em Feixes, com temas ao redor de um círculo"></div>
+    <figcaption><b>Grafo.</b> O cofre inteiro de uma vez. Quando a IA lê algo, o caminho acende.</figcaption>
+  </figure>
+  <div class="pair">
+    <figure><div class="shot"><img src="images/graph-roots.png" alt="Grafo em Raízes"></div><figcaption><b>Raízes.</b> A mesma memória como árvore: ramos engrossam com o uso.</figcaption></figure>
+    <figure><div class="shot"><img src="images/notes.png" alt="Editor de notas"></div><figcaption><b>Notas.</b> Escreva em Markdown, aqui ou no seu editor.</figcaption></figure>
+    <figure><div class="shot"><img src="images/memories.png" alt="Lista de memórias"></div><figcaption><b>Memórias.</b> Tudo o que a IA guarda, por tipo e origem.</figcaption></figure>
+    <figure><div class="shot"><img src="images/activity.png" alt="Atividade por sessão"></div><figcaption><b>Atividade.</b> O que cada sessão mudou, com desfazer.</figcaption></figure>
+    <figure><div class="shot"><img src="images/metrics.png" alt="Métricas de uso"></div><figcaption><b>Métricas.</b> O que é mais lido e o que ficou sem resposta.</figcaption></figure>
+    <figure><div class="shot"><img src="images/profile.png" alt="Perfil"></div><figcaption><b>Perfil.</b> O que a IA sabe de você. Clique numa frase para corrigir.</figcaption></figure>
+  </div>
+  <h3 style="margin-top:40px">Três hábitos que valem a pena</h3>
+  <ol class="steps">
+    <li>Corrija a IA em voz normal: <em>não, aqui é assim</em>. A frase fica registrada.</li>
+    <li>Diga quem você é uma vez: <em>me chamo Ana e cuido da API</em>. Vale para as próximas sessões.</li>
+    <li>De vez em quando, rode <code>/sonhar</code> no Claude Code para transformar notas em memórias.</li>
+  </ol>
+</section>
+
+<section id="ligar">
+  <h2>7. Ligar e desligar</h2>
+  <p>Todo projeto conectado aparece em <strong>Ajustes</strong>, com um interruptor. Um clique liga ou desliga, e o cofre não muda.</p>
+  <figure>
+    <div class="shot">
+      <img src="images/settings.png" alt="Lista de projetos em Ajustes, com um interruptor em cada projeto">
+      <span class="pin" style="left:74.6%;top:44.9%">1</span>
+      <span class="pin" style="left:67.2%;top:35.4%">2</span>
+    </div>
+    <figcaption><b>1</b> O interruptor liga ou desliga aquele projeto naquela IA. <b>2</b> Remover aparece com o projeto desligado e só tira a linha da lista.</figcaption>
+  </figure>
+  <table>
+    <thead><tr><th>Quero</th><th>Como</th></tr></thead>
+    <tbody>
+      <tr><td>Ligar pela primeira vez</td><td><strong>Ajustes</strong> › <strong>Conectar projeto…</strong></td></tr>
+      <tr><td>Desligar por um tempo</td><td>O interruptor do projeto. Vale a partir da próxima sessão.</td></tr>
+      <tr><td>Religar</td><td>O mesmo interruptor. Nada se perdeu.</td></tr>
+      <tr><td>Fechar só o app</td><td><kbd>⌘Q</kbd>. A IA continua lembrando: fechar o app não desliga nada.</td></tr>
+      <tr><td>Parar em todos os projetos</td><td>Desligue cada interruptor.</td></tr>
+    </tbody>
+  </table>
+  <p class="sub">Desligar remove só o que o Omnimind colocou no projeto. Suas outras configurações ficam. Uma sessão já aberta continua como começou: feche e abra outra.</p>
+  <h3>Pelo Terminal</h3>
+  <p>Na pasta do projeto, troque <code>claude-code</code> por <code>copilot</code> se for o caso:</p>
+  <div class="cmd"><pre>/Applications/Omnimind.app/Contents/MacOS/omnimind disconnect claude-code --project .</pre><button type="button">Copiar</button></div>
+</section>
+
+<section id="problemas">
+  <h2>8. Quando algo falha</h2>
+  <table>
+    <thead><tr><th>O que acontece</th><th>O que fazer</th></tr></thead>
+    <tbody>
+      <tr><td>A IA não lembra de nada</td><td>Confira <code>/mcp</code> numa sessão nova. Depois, conecte o projeto de novo: repetir não duplica nada.</td></tr>
+      <tr><td>Erros de hook depois de mover o app</td><td>Volte o app para Aplicativos, ou desligue e ligue cada projeto em <strong>Ajustes</strong>.</td></tr>
+      <tr><td>Um projeto aparece como <em>Pasta não encontrada</em></td><td>A pasta mudou de lugar. Clique em <strong>Remover</strong> e conecte de novo no novo lugar.</td></tr>
+      <tr><td>O interruptor recusa desligar por causa de comentários</td><td>O <code>.vscode/mcp.json</code> tem comentários, e o Omnimind não reescreve esse arquivo. Tire os comentários e tente de novo.</td></tr>
+      <tr><td>A IA repete um erro já corrigido</td><td>Veja em <strong>Memórias</strong> se a correção virou memória. Se não virou, diga de novo no início da mensagem.</td></tr>
+      <tr><td>Uma memória está errada</td><td>Corrija no <strong>Perfil</strong>, ou arquive em <strong>Memórias</strong>.</td></tr>
+      <tr><td>Uma sessão gravou coisa demais</td><td><strong>Atividade</strong> › <strong>Desfazer sessão</strong>.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="limites">
+  <h2>9. O que ainda falta testar</h2>
+  <p>Esta é uma versão inicial, testada com dados fictícios.</p>
+  <ul>
+    <li>Os hooks rodaram no Claude Code real, em sessões automáticas. O modo interativo e a aprovação na primeira abertura ainda não: o teste da parte 5 cobre isso.</li>
+    <li>O GitHub Copilot não foi testado de verdade.</li>
+    <li>Um projeto usa um cofre por vez.</li>
+    <li>O nome Omnimind ainda é provisório.</li>
+  </ul>
+</section>
+</div></main>
+
+<script>
+document.querySelectorAll(".cmd button").forEach((b) => {
+  b.addEventListener("click", async () => {
+    const text = b.parentElement.querySelector("pre").textContent;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const t = document.createElement("textarea");
+      t.value = text;
+      document.body.append(t);
+      t.select();
+      document.execCommand("copy");
+      t.remove();
+    }
+    b.textContent = "Copiado";
+    setTimeout(() => { b.textContent = "Copiar"; }, 1400);
+  });
+});
+const links = [...document.querySelectorAll(".side a")];
+const watch = new IntersectionObserver((seen) => {
+  seen.filter((s) => s.isIntersecting).forEach((s) => {
+    links.forEach((l) => l.classList.toggle("on", l.hash === "#" + s.target.id));
+  });
+}, { rootMargin: "-20% 0px -70% 0px" });
+document.querySelectorAll("section").forEach((s) => watch.observe(s));
+</script>
+</body>
+</html>

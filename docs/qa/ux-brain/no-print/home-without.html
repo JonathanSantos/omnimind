@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Omnimind</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#12110e;--line:#2b2923;--ink:#ece7da;--mute:#a8a396;--acc:#e3a857;color-scheme:dark}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--ink);font:400 16px/1.5 "IBM Plex Sans",system-ui,sans-serif;display:grid;grid-template-columns:680px 1fr;-webkit-font-smoothing:antialiased}
+.l{display:flex;flex-direction:column;padding:40px 56px 40px 88px;border-right:1px solid var(--line);min-height:0}
+.brand{display:flex;align-items:center;gap:10px;font:500 13px "IBM Plex Mono",monospace;letter-spacing:.04em}
+.brand svg{width:18px;height:18px}
+main{margin:auto 0}
+.eyebrow{font:500 12px "IBM Plex Mono",monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--acc);margin-bottom:18px}
+h1{font:400 60px/1.03 "Instrument Serif",Georgia,serif;letter-spacing:-.012em;text-wrap:balance}
+h1 em{color:var(--acc)}
+.lead{margin-top:22px;max-width:31em;font-size:17px;color:var(--mute)}
+dl{margin-top:32px}
+.d{display:grid;grid-template-columns:34px 118px 1fr;align-items:baseline;padding:12px 0;border-top:1px solid var(--line)}
+.d:last-child{border-bottom:1px solid var(--line)}
+.d span{font:400 11px "IBM Plex Mono",monospace;color:#7d796c}
+dt{font:400 27px/1.2 "Instrument Serif",Georgia,serif;transition:color .15s}
+dd{font-size:15px;color:var(--mute)}
+.d:hover dt{color:var(--acc)}
+.a{display:flex;align-items:center;gap:12px;margin-top:32px}
+button{font:inherit;cursor:pointer;border-radius:6px;border:1px solid transparent;padding:13px 22px;color:var(--ink);background:none;transition:background .15s,border-color .15s,color .15s}
+.p{background:var(--acc);color:#1a1408;font-weight:600}
+.p:hover{background:#efba72}
+.s{border-color:#4a463c}
+.s:hover{border-color:var(--mute);background:#1b1a16}
+.t{padding-inline:8px;color:var(--mute);text-decoration:underline;text-underline-offset:5px;text-decoration-color:#58544a}
+.t:hover{color:var(--ink)}
+:focus-visible{outline:2px solid var(--acc);outline-offset:3px}
+.hint{margin-top:16px;max-width:36em;font-size:13px;color:var(--mute)}
+.foot,.cap{font:400 11.5px/1.5 "IBM Plex Mono",monospace;color:var(--mute)}
+.r{position:relative;min-width:0}
+#c{position:absolute;inset:0;width:100%;height:100%}
+.cap{position:absolute;left:40px;bottom:40px;max-width:44em}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="l">
+  <div class="brand"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="1.5" y="1.5" width="15" height="15" rx="3.5"/><circle cx="9" cy="9" r="3.6"/></svg>Omnimind</div>
+  <main>
+    <p class="eyebrow">Primeira abertura</p>
+    <h1>Suas notas viram a <em>memória</em> da sua IA.</h1>
+    <p class="lead">Você escreve em Markdown. A IA guarda o que aprendeu e lembra na sessão seguinte. Tudo fica numa pasta do seu computador.</p>
+    <dl>
+      <div class="d" data-k="nota"><span>01</span><dt>Nota</dt><dd>Um arquivo Markdown que você escreve.</dd></div>
+      <div class="d" data-k="memoria"><span>02</span><dt>Memória</dt><dd>O que a IA guarda de uma sessão para a próxima.</dd></div>
+      <div class="d" data-k="cofre"><span>03</span><dt>Cofre</dt><dd>A pasta no seu computador que guarda tudo isso.</dd></div>
+    </dl>
+    <div class="a">
+      <button class="p" data-a="comecar">Começar</button>
+      <button class="s" data-a="abrir">Abrir uma pasta</button>
+      <button class="t" data-a="exemplo">Ver um exemplo</button>
+    </div>
+    <p class="hint">Começar cria um cofre novo. Abrir uma pasta usa notas que você já tem. Ver um exemplo mostra um cofre de exemplo, só para ler.</p>
+  </main>
+  <p class="foot">Seus arquivos continuam seus: Markdown puro, numa pasta comum.</p>
+</div>
+<section class="r">
+  <canvas id="c" role="img" aria-label="Ilustração: anéis crescem em volta de uma nota, um por sessão, com marcas que representam memórias."></canvas>
+  <p class="cap">Ilustração com dados fictícios, gerada por código. Cada anel é uma sessão; cada marca, uma memória.</p>
+</section>
+<script>
+const cv=document.getElementById('c'),x=cv.getContext('2d'),RM=matchMedia('(prefers-reduced-motion: reduce)');
+const T=6.2832,E=u=>1-Math.pow(1-u,3),C=(v,a=0,b=1)=>Math.min(b,Math.max(a,v));
+const A=a=>`rgba(236,231,218,${a})`,O=a=>`rgba(227,168,87,${a})`;
+let W,H,cx,cy,R,Hf,hl=null,t0=performance.now();
+const f={nota:1,memoria:1,cofre:1};
+
+// Dados fictícios, determinísticos: o desenho é igual a cada abertura.
+function rng(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const r=rng(11),rings=[];let sum=0;
+for(let i=0;i<11;i++){
+  sum+=.6+r()*.8;
+  const g={k:sum,s:r()*T,ph:[r()*T,r()*T,r()*T],am:[.014+r()*.01,.009+r()*.01,.005+r()*.006],m:[]};
+  for(let n=3+i+Math.floor(r()*3);n--;)g.m.push({a:.3+r()*5.68,l:5+r()*7,h:0});
+  rings.push(g);
+}
+rings.forEach(g=>g.k/=sum);
+[[2,0],[6,0],[10,0],[4,1],[8,1]].forEach(([i,j])=>rings[i].m[j].h=1);
+const links=[[[2,0],[6,0]],[[6,0],[10,0]],[[4,1],[8,1]]];
+
+const rr=(g,a)=>(.1+.9*g.k)*(1+g.am[0]*Math.sin(2*a+g.ph[0])+g.am[1]*Math.sin(3*a+g.ph[1])+g.am[2]*Math.sin(5*a+g.ph[2]));
+const pt=(g,a,e=0)=>{const q=rr(g,a)*R+e;return[cx+g.k*R*.035+q*Math.cos(a),cy-g.k*R*.025+q*Math.sin(a)]};
+const P=([i,j])=>pt(rings[i],rings[i].m[j].a);
+
+function draw(t){
+  x.clearRect(0,0,W,H);
+  for(const k in f){const g=hl?(hl===k?1:.3):1;f[k]=RM.matches?g:f[k]+(g-f[k])*.14}
+  x.font='11px "IBM Plex Mono",monospace';x.lineWidth=1;
+
+  x.strokeStyle=A(.07);x.beginPath();
+  x.moveTo(cx-Hf-18,cy);x.lineTo(cx+Hf+18,cy);x.moveTo(cx,cy-Hf-18);x.lineTo(cx,cy+Hf+18);x.stroke();
+
+  const fa=C(t/1.2);
+  x.setLineDash([3,5]);x.strokeStyle=hl==='cofre'?O(.85):A(.28*f.cofre*fa);
+  x.beginPath();x.roundRect(cx-Hf,cy-Hf,Hf*2,Hf*2,18);x.stroke();x.setLineDash([]);
+  x.fillStyle=hl==='cofre'?O(.95):A(.5*f.cofre*fa);x.fillText('~/cofre',cx-Hf,cy-Hf-10);
+
+  rings.forEach((g,i)=>{
+    const p=E(C((t-.5-i*.95)/2.2));if(!p)return;
+    x.lineWidth=1;x.strokeStyle=A((.2+.4*(1-p))*f.memoria);x.beginPath();
+    for(let a=0,n=Math.ceil(p*160);a<=n;a++){const[px,py]=pt(g,g.s+a/160*T);a?x.lineTo(px,py):x.moveTo(px,py)}
+    x.stroke();
+    g.m.forEach(m=>{
+      const u=(((m.a-g.s)/T)%1+1)%1,v=C((p-u)*8);if(v<=0)return;
+      const[a,b]=pt(g,m.a),[c,d]=pt(g,m.a,m.l*v);
+      x.lineWidth=m.h?2:1.5;x.strokeStyle=m.h?O(v*f.memoria):A(.5*v*f.memoria);
+      x.beginPath();x.moveTo(a,b);x.lineTo(c,d);x.stroke();
+      if(m.h){
+        const k=.5+.5*Math.sin(t*.9+i);
+        x.lineWidth=1;x.strokeStyle=O(v*f.memoria*(.15+.3*k));
+        x.beginPath();x.arc(c,d,5+3*k,0,T);x.stroke();
+        x.fillStyle=O(v*f.memoria);x.beginPath();x.arc(c,d,2.2,0,T);x.fill();
+      }
+    });
+  });
+
+  [0,5,10].forEach(i=>{
+    const s=C((t-.5-i*.95-1)/.8);if(!s)return;
+    const[px,py]=pt(rings[i],0);
+    x.strokeStyle=A(.35*s);x.beginPath();x.moveTo(px,py-3);x.lineTo(px,py+3);x.stroke();
+    x.fillStyle=A(.55*s);x.fillText('sessão '+(i+1),px+5,py+16);
+  });
+
+  links.forEach(([p1,p2],j)=>{
+    const q=E(C((t-12.6-j*.8)/1.8));if(!q)return;
+    const[a,b]=P(p1),[c,d]=P(p2),kx=cx+((a+c)/2-cx)*.35,ky=cy+((b+d)/2-cy)*.35;
+    x.setLineDash([2,4]);x.lineWidth=1;x.strokeStyle=O(.6*q*f.memoria);x.beginPath();
+    for(let s=0;s<=40*q;s++){
+      const u=s/40,w=1-u,px=w*w*a+2*w*u*kx+u*u*c,py=w*w*b+2*w*u*ky+u*u*d;
+      s?x.lineTo(px,py):x.moveTo(px,py);
+    }
+    x.stroke();x.setLineDash([]);
+  });
+
+  x.save();x.globalAlpha=f.nota*C(t/.6);
+  x.fillStyle='#12110e';x.strokeStyle=hl==='nota'?O(1):A(.85);x.lineWidth=1.3;
+  x.beginPath();x.roundRect(cx-13,cy-16,26,32,3);x.fill();x.stroke();
+  x.strokeStyle=O(1);x.lineWidth=2.2;x.beginPath();x.moveTo(cx-7,cy-8);x.lineTo(cx-1,cy-8);x.stroke();
+  x.strokeStyle=A(.6);x.lineWidth=1.3;x.beginPath();
+  x.moveTo(cx-7,cy-1);x.lineTo(cx+7,cy-1);x.moveTo(cx-7,cy+5);x.lineTo(cx+7,cy+5);x.moveTo(cx-7,cy+11);x.lineTo(cx+2,cy+11);
+  x.stroke();x.restore();
+}
+
+function frame(now){draw(RM.matches?99:(now-t0)/1000);if(!RM.matches)requestAnimationFrame(frame)}
+function fit(){
+  const b=cv.parentNode.getBoundingClientRect(),D=devicePixelRatio||1;
+  W=b.width;H=b.height;cv.width=W*D;cv.height=H*D;x.setTransform(D,0,0,D,0,0);x.lineCap='round';
+  cx=W/2;cy=H/2+4;R=Math.min(W,H)*.39;Hf=R+38;requestAnimationFrame(frame);
+}
+new ResizeObserver(fit).observe(cv.parentNode);
+RM.addEventListener('change',()=>{t0=performance.now();requestAnimationFrame(frame)});
+
+document.querySelectorAll('.d').forEach(d=>{
+  d.onmouseenter=()=>{hl=d.dataset.k;RM.matches&&requestAnimationFrame(frame)};
+  d.onmouseleave=()=>{hl=null;RM.matches&&requestAnimationFrame(frame)};
+});
+document.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>
+  dispatchEvent(new CustomEvent('omnimind:acao',{detail:b.dataset.a})));
+</script>
+</body>
+</html>
